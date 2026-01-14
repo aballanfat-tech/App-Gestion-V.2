@@ -1,0 +1,77 @@
+/**
+ * Configuration Supabase - Module Extraction Factures
+ * 
+ * ⚠️ IMPORTANT : Ce fichier NE DOIT PAS être commité dans Git
+ * Ajouter à .gitignore : config.js
+ * 
+ * Pour chaque environnement :
+ * - Développement : Utiliser project de test
+ * - Production : Utiliser project production (twyacfsojmsmjabogort)
+ */
+
+// Configuration Supabase
+window.SUPABASE_CONFIG = {
+  // URL du projet Supabase
+  // Production : https://twyacfsojmsmjabogort.supabase.co
+  url: "https://twyacfsojmsmjabogort.supabase.co",
+  
+  // Clé anonyme (anon key) - Safe pour client-side
+  // Récupérer dans : Dashboard Supabase > Settings > API > anon/public key
+  anonKey: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3eWFjZnNvam1zbWphYm9nb3J0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyODQ2ODksImV4cCI6MjA4Mzg2MDY4OX0.9e3YBdkPnE7uaNJYf9R-3d3bZICRJMxJHUtGQsV5CO8",
+  
+  // Options client (optionnel)
+  options: {
+    auth: {
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: true
+    }
+  }
+};
+
+// Configuration PDF.js
+window.PDFJS_CONFIG = {
+  workerSrc: "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js",
+  version: "3.11.174"
+};
+
+// Constantes métier
+window.APP_CONFIG = {
+  // Limites upload
+  MAX_FILE_SIZE: 10 * 1024 * 1024, // 10 MB
+  MAX_FILES: 20,
+  
+  // Formats acceptés
+  ACCEPTED_FORMATS: ["application/pdf"],
+  
+  // Délais
+  AUTOSAVE_DELAY: 5000, // 5 secondes
+  KEEPALIVE_INTERVAL: 240000, // 4 minutes
+  
+  // localStorage keys
+  STORAGE_KEY_LIST: "facturesImport",
+  STORAGE_KEY_AUTH: "supabaseAuth",
+  
+  // Bucket Supabase Storage
+  STORAGE_BUCKET: "factures",
+  
+  // Table Supabase
+  TABLE_FACTURES: "factures",
+  
+  // Statuts factures
+  STATUS: {
+    PENDING: "pending",
+    EXTRACTING: "extracting",
+    EXTRACTED: "extracted",
+    ERROR: "error"
+  }
+};
+
+// Export pour modules ES6 (si besoin futur)
+if(typeof module !== 'undefined' && module.exports) {
+  module.exports = {
+    SUPABASE_CONFIG: window.SUPABASE_CONFIG,
+    PDFJS_CONFIG: window.PDFJS_CONFIG,
+    APP_CONFIG: window.APP_CONFIG
+  };
+}

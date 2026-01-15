@@ -456,9 +456,6 @@
     
     return { data: data || [], error };
   }
-
-  // Export API publique
-  window.SupabaseClient = {
   
   // Export API publique
   window.SupabaseClient = {

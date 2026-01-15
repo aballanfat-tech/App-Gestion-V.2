@@ -283,7 +283,7 @@
   const { data, error } = await client
   .from(table)
   .upsert(facture, {
-    onConflict: 'file_name,user_id',
+    onConflict: 'fichier_nom,user_id',
     ignoreDuplicates: false
   })
   .select("id,created_at")

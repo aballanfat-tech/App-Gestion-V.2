@@ -366,11 +366,59 @@
     UIRenderer.showTempMessage("ok", "✅ Fichiers locaux retirés");
   }
 
-  function handleReload() {
-    StateManager.clearFiles();
-    restoreListFromLocalStorage();
-    UIRenderer.showTempMessage("ok", "✅ Liste rechargée depuis localStorage");
+async function handleReload() {
+  console.log("🔄 Rechargement factures...");
+  
+  // 1. Essayer Supabase d'abord
+  try {
+    const { data, error } = await SupabaseClient.getFactures();
+    
+    if (!error && data && data.length > 0) {
+      console.log(`✅ ${data.length} factures depuis Supabase`);
+      
+      // Vider état actuel
+      StateManager.clearFiles();
+      
+      // Convertir format Supabase → State
+      data.forEach(factureDB => {
+        StateManager.addFile({
+          id: factureDB.id,
+          name: factureDB.fichier_nom,
+          size: 0, // Pas stocké en DB
+          status: factureDB.statut || "done",
+          url: factureDB.fichier_url,
+          // Ajouter autres champs si nécessaire
+        });
+      });
+      
+      // Sauvegarder aussi en localStorage
+      saveCurrentListToLocalStorage();
+      
+      UIRenderer.showTempMessage("ok", `✅ ${data.length} factures chargées depuis Supabase`);
+      return;
+    }
+    
+    // Si Supabase vide, essayer localStorage
+    if (!error && data.length === 0) {
+      console.log("ℹ️ Aucune facture Supabase, essai localStorage");
+    } else if (error) {
+      console.warn("⚠️ Erreur Supabase:", error);
+    }
+  } catch (err) {
+    console.error("❌ Erreur chargement Supabase:", err);
   }
+  
+  // 2. Fallback localStorage
+  StateManager.clearFiles();
+  restoreListFromLocalStorage();
+  
+  const count = StateManager.getFiles().length;
+  if (count > 0) {
+    UIRenderer.showTempMessage("ok", `✅ ${count} factures depuis localStorage`);
+  } else {
+    UIRenderer.showTempMessage("info", "ℹ️ Aucune facture trouvée");
+  }
+}
 
   function handleTableAction(e) {
     const btn = e.target.closest("button[data-action]");

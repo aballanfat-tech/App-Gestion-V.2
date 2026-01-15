@@ -326,3 +326,23 @@ mark.hl {
     padding: 8px 6px;
   }
 }
+
+/* ===========================
+   LOGO WATERMARK
+   =========================== */
+body::before {
+  content: '';
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 800px;
+  height: 800px;
+  background-image: url('../logo_ballanfat.png');
+  background-size: contain;
+  background-repeat: no-repeat;
+  background-position: center;
+  opacity: 0.04;
+  pointer-events: none;
+  z-index: -1;
+}

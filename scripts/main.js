@@ -369,7 +369,6 @@
 async function handleReload() {
   console.log("🔄 Rechargement factures...");
   
-  // 1. Essayer Supabase d'abord
   try {
     const { data, error } = await SupabaseClient.getFactures();
     
@@ -379,44 +378,44 @@ async function handleReload() {
       // Vider état actuel
       StateManager.clearFiles();
       
-      // Convertir format Supabase → State
-      data.forEach(factureDB => {
-        StateManager.addFile({
-          id: factureDB.id,
-          name: factureDB.fichier_nom,
-          size: 0, // Pas stocké en DB
-          status: factureDB.statut || "done",
-          url: factureDB.fichier_url,
-          // Ajouter autres champs si nécessaire
-        });
-      });
+      // Convertir factures Supabase en format State
+      const filesArray = data.map(factureDB => ({
+        fileName: factureDB.fichier_nom,  // ✅ Clé utilisée par StateManager
+        name: factureDB.fichier_nom,
+        size: 0,
+        status: factureDB.statut || "done",
+        url: factureDB.fichier_url,
+        id: factureDB.id
+      }));
       
-      // Sauvegarder aussi en localStorage
+      // Ajouter toutes les factures (tableau)
+      StateManager.addFiles(filesArray);  // ✅ Pluriel + tableau
+      
+      // Sauvegarder localStorage
       saveCurrentListToLocalStorage();
       
       UIRenderer.showTempMessage("ok", `✅ ${data.length} factures chargées depuis Supabase`);
       return;
     }
     
-    // Si Supabase vide, essayer localStorage
     if (!error && data.length === 0) {
-      console.log("ℹ️ Aucune facture Supabase, essai localStorage");
+      console.log("ℹ️ Aucune facture Supabase");
     } else if (error) {
       console.warn("⚠️ Erreur Supabase:", error);
     }
   } catch (err) {
-    console.error("❌ Erreur chargement Supabase:", err);
+    console.error("❌ Erreur:", err);
   }
   
-  // 2. Fallback localStorage
+  // Fallback localStorage
   StateManager.clearFiles();
   restoreListFromLocalStorage();
   
   const count = StateManager.getFiles().length;
   if (count > 0) {
-    UIRenderer.showTempMessage("ok", `✅ ${count} factures depuis localStorage`);
+    UIRenderer.showTempMessage("ok", `✅ ${count} factures localStorage`);
   } else {
-    UIRenderer.showTempMessage("info", "ℹ️ Aucune facture trouvée");
+    UIRenderer.showTempMessage("info", "ℹ️ Aucune facture");
   }
 }
 

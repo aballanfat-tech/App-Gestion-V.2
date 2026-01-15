@@ -77,30 +77,140 @@
   </div>
 
   <!-- Liste Factures -->
-  <div class="card">
-    <div class="row" style="align-items:center; justify-content:space-between;">
-      <div style="font-weight:900;">📄 Factures</div>
-      <div class="muted" id="count">0</div>
+ <!-- Liste Factures avec Filtres -->
+<div class="card">
+  <!-- Header avec compteur -->
+  <div class="row" style="align-items:center; justify-content:space-between;">
+    <div style="font-weight:900;">📄 Factures</div>
+    <div class="muted" id="count">0</div>
+  </div>
+
+  <!-- ===== BARRE FILTRES (NOUVEAU) ===== -->
+  <div class="filters-bar" style="margin-top:16px; padding:16px; background:#f5f5f5; border-radius:8px;">
+    
+    <!-- Ligne 1 : Recherche + Statut + Dates -->
+    <div class="row" style="gap:12px; margin-bottom:12px; flex-wrap:wrap;">
+      
+      <!-- Recherche texte -->
+      <div style="flex:1; min-width:200px;">
+        <label class="muted small">🔍 Rechercher</label>
+        <input 
+          type="text" 
+          class="field" 
+          id="filterSearch" 
+          placeholder="Nom fichier, client..."
+          style="width:100%; margin-top:4px;"
+        >
+      </div>
+
+      <!-- Filtre statut -->
+      <div style="min-width:150px;">
+        <label class="muted small">📊 Statut</label>
+        <select class="field" id="filterStatus" style="width:100%; margin-top:4px;">
+          <option value="all">Tous</option>
+          <option value="pending">En attente</option>
+          <option value="processing">Traitement</option>
+          <option value="extracted">Extrait</option>
+          <option value="done">Terminé</option>
+          <option value="error">Erreur</option>
+        </select>
+      </div>
+
+      <!-- Date début -->
+      <div style="min-width:140px;">
+        <label class="muted small">📅 Du</label>
+        <input 
+          type="date" 
+          class="field" 
+          id="filterDateFrom"
+          style="width:100%; margin-top:4px;"
+        >
+      </div>
+
+      <!-- Date fin -->
+      <div style="min-width:140px;">
+        <label class="muted small">📅 Au</label>
+        <input 
+          type="date" 
+          class="field" 
+          id="filterDateTo"
+          style="width:100%; margin-top:4px;"
+        >
+      </div>
+
     </div>
 
-    <div style="overflow:auto; margin-top:10px;">
-      <table>
-        <thead>
-          <tr>
-            <th>Fichier</th>
-            <th>Taille</th>
-            <th>Statut</th>
-            <th>ID</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="tbody">
-          <tr><td colspan="5" class="muted">Aucun fichier</td></tr>
-        </tbody>
-      </table>
+    <!-- Ligne 2 : Items par page + Actions -->
+    <div class="row" style="gap:12px; align-items:flex-end; flex-wrap:wrap;">
+      
+      <!-- Items par page -->
+      <div style="min-width:120px;">
+        <label class="muted small">📄 Par page</label>
+        <select class="field" id="filterPerPage" style="width:100%; margin-top:4px;">
+          <option value="20">20</option>
+          <option value="50">50</option>
+          <option value="100">100</option>
+          <option value="999999">Tous</option>
+        </select>
+      </div>
+
+      <!-- Boutons actions -->
+      <div style="flex:1; display:flex; gap:8px; justify-content:flex-end;">
+        <button class="btn small" id="btnResetFilters" title="Réinitialiser filtres">
+          🔄 RAZ
+        </button>
+        <button class="btn small primary" id="btnExportCSV" title="Exporter CSV">
+          📥 Export CSV
+        </button>
+      </div>
+
     </div>
+
   </div>
-</main>
+  <!-- ===== FIN BARRE FILTRES ===== -->
+
+  <!-- Info résultats (nouveau) -->
+  <div class="muted small" id="filterInfo" style="margin-top:12px; padding:8px; background:#e3f2fd; border-radius:4px; display:none;">
+    Affichage <span id="rangeStart">1</span>-<span id="rangeEnd">20</span> sur <span id="totalFiltered">0</span> factures
+  </div>
+
+  <!-- Tableau factures -->
+  <div style="overflow:auto; margin-top:10px;">
+    <table>
+      <thead>
+        <tr>
+          <th data-sort="fileName" style="cursor:pointer; user-select:none;">
+            Fichier <span id="sortFileName"></span>
+          </th>
+          <th data-sort="size" style="cursor:pointer; user-select:none;">
+            Taille <span id="sortSize"></span>
+          </th>
+          <th data-sort="status" style="cursor:pointer; user-select:none;">
+            Statut <span id="sortStatus"></span>
+          </th>
+          <th data-sort="created_at" style="cursor:pointer; user-select:none;">
+            Date <span id="sortCreatedAt"></span>
+          </th>
+          <th>ID</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbody">
+        <tr><td colspan="6" class="muted">Aucune facture</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Pagination (nouveau) -->
+  <div class="row" id="pagination" style="margin-top:16px; justify-content:space-between; align-items:center; display:none;">
+    <button class="btn small" id="btnPrevPage" disabled>◀ Précédent</button>
+    <div class="muted">
+      Page <span id="currentPage">1</span> / <span id="totalPages">1</span>
+    </div>
+    <button class="btn small" id="btnNextPage" disabled>Suivant ▶</button>
+  </div>
+
+</div>
 
 <!-- ===========================
      MODAL VIEWER

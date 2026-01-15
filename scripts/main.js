@@ -379,20 +379,23 @@ async function handleReload() {
       StateManager.clearFiles();
       
       // Convertir factures Supabase en format State
-      const filesArray = data.map(factureDB => ({
-        fileName: factureDB.fichier_nom,  // ✅ Clé utilisée par StateManager
-        name: factureDB.fichier_nom,
-        size: 0,
-        status: factureDB.statut || "done",
-        url: factureDB.fichier_url,
-        id: factureDB.id
-      }));
+     const filesArray = data.map(factureDB => ({
+      fileName: factureDB.fichier_nom,
+      name: factureDB.fichier_nom,
+      size: 0,
+      status: factureDB.statut || "extracted",
+      url: factureDB.fichier_url,
+      id: factureDB.id,
+      kind: "saved",                          
+      factureId: factureDB.id,                
+      createdAt: factureDB.created_at || new Date().toISOString() 
+    }));
       
       // Ajouter toutes les factures (tableau)
       StateManager.addFiles(filesArray);  // ✅ Pluriel + tableau
       
       // Sauvegarder localStorage
-      saveCurrentListToLocalStorage();
+       saveListToLocalStorage();
       
       UIRenderer.showTempMessage("ok", `✅ ${data.length} factures chargées depuis Supabase`);
       return;

@@ -277,10 +277,13 @@
       if(uploadResult.error) throw new Error("Upload failed: " + uploadResult.error.message);
 
       // 3. Créer facture DB
+      const { data: { user } } = await window.supabaseClient.auth.getUser();
+
       const createResult = await SupabaseClient.createFacture({
         fichier_url: storagePath,
         fichier_nom: fileName,
-        statut: "pending"
+        statut: "pending",
+        user_id: user?.id
       });
       if(createResult.error) throw new Error("Create failed: " + createResult.error.message);
 

@@ -280,8 +280,11 @@
     const client = getClient();
     const table = window.APP_CONFIG?.TABLE_FACTURES || "factures";
     
-    const { data, error } = await client.from(table).insert(facture).select("id,created_at").single();
-    
+    const { data, error } = await client.from(table).upsert(facture).select("id,created_at").single();
+      onConflict: 'file_name,user_id',
+    ignoreDuplicates: false
+      });
+
     return { data, error };
   }
 

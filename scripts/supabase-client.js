@@ -430,6 +430,36 @@
     return { data, error };
   }
 
+  /**
+   * Récupérer toutes les factures de l'utilisateur connecté
+   */
+  async function getFactures() {
+    const client = getClient();
+    const table = window.APP_CONFIG?.TABLE_FACTURES || "factures";
+    
+    // Récupérer user actuel
+    const { data: { user } } = await client.auth.getUser();
+    if (!user) {
+      return { data: [], error: new Error("Non connecté") };
+    }
+    
+    console.log("📥 Chargement factures user:", user.id);
+    
+    // Charger factures de cet user
+    const { data, error } = await client
+      .from(table)
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false });
+    
+    console.log(`📊 ${data?.length || 0} factures trouvées`);
+    
+    return { data: data || [], error };
+  }
+
+  // Export API publique
+  window.SupabaseClient = {
+  
   // Export API publique
   window.SupabaseClient = {
     // Init
@@ -455,7 +485,8 @@
     getFacture: getFacture,
     listFactures: listFactures,
     deleteFacture: deleteFacture,
-    searchFactures: searchFactures
+    searchFactures: searchFactures,
+    getFactures: getFactures 
   };
 
 })(window);

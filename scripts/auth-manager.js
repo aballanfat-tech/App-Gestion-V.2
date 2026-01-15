@@ -89,7 +89,7 @@ const AuthManager = {
     this.userPermissions = [];
     
     // Rediriger vers login
-    window.location.href = "/login.html";
+    window.location.href = "login.html";
   },
   
   /**
@@ -196,14 +196,14 @@ const AuthManager = {
     
     if (!user) {
       console.warn("⚠️ Utilisateur non connecté, redirection login");
-      window.location.href = "/login.html";
+      window.location.href = "login.html";
       return false;
     }
     
     if (requiredPermission && !this.hasPermission(requiredPermission)) {
       console.error("❌ Permission refusée:", requiredPermission);
       alert("Vous n'avez pas accès à cette page.");
-      window.location.href = "/dashboard.html";
+      window.location.href = "dashboard.html";
       return false;
     }
     
@@ -218,7 +218,7 @@ const AuthManager = {
     
     if (user) {
       console.log("✅ Déjà connecté, redirection dashboard");
-      window.location.href = "/dashboard.html";
+      window.location.href = "dashboard.html";
       return true;
     }
     

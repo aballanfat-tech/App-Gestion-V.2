@@ -86,6 +86,14 @@
     document.getElementById("clearBtn")?.addEventListener("click", handleClearLocal);
     document.getElementById("reloadBtn")?.addEventListener("click", handleReload);
 
+    // Bouton retour dashboard
+    const backBtn = document.getElementById('backBtn');
+    if (backBtn) {
+    backBtn.addEventListener('click', () => {
+    window.location.href = 'dashboard.html';
+    });
+    }
+
     // Drag & Drop
     const drop = document.getElementById("drop");
     if(drop) {

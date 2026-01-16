@@ -161,6 +161,8 @@
           </td>
         </tr>
       `);
+    }
+  }
       
   /**
    * Mettre à jour boutons selon état

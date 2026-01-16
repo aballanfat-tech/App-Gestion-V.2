@@ -94,6 +94,22 @@
     });
     }
 
+    // Toggle filtres
+document.getElementById('btnToggleFilters')?.addEventListener('click', function() {
+  const filtersBar = document.querySelector('.filters-bar');
+  const btn = this;
+  
+  if (filtersBar.classList.contains('collapsed')) {
+    filtersBar.classList.remove('collapsed');
+    btn.classList.remove('collapsed');
+    btn.textContent = '🔽 Filtres';
+  } else {
+    filtersBar.classList.add('collapsed');
+    btn.classList.add('collapsed');
+    btn.textContent = '▶ Filtres';
+  }
+});
+
     // Drag & Drop
     const drop = document.getElementById("drop");
     if(drop) {

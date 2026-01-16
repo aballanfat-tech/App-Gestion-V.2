@@ -112,7 +112,7 @@
     tbody.innerHTML = "";
     
     if(files.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="5" class="muted">Aucun fichier</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="muted">Aucun fichier</td></tr>';
       return;
     }
     
@@ -126,10 +126,21 @@
       const size = it.kind === "local" ? it.file.size : it.size;
       
       let pill = '<span class="pill">' + escapeHtml(it.status || "—") + '</span>';
-      if(it.status === "extracted") pill = '<span class="pill ok">OK</span>';
+      if(it.status === "extracted") pill = '<span class="pill ok">Extrait</span>';
+      if(it.status === "done") pill = '<span class="pill ok">Terminé</span>';
       if(it.status === "error") pill = '<span class="pill err">Erreur</span>';
       if(it.status === "uploading" || it.status === "extracting") {
         pill = '<span class="pill wait">' + escapeHtml(it.status) + '</span>';
+      }
+      
+      // Formater date
+      let dateDisplay = '—';
+      if (it.createdAt) {
+        const d = new Date(it.createdAt);
+        dateDisplay = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
+      } else if (it.date_facture) {
+        const d = new Date(it.date_facture);
+        dateDisplay = d.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: '2-digit' });
       }
       
       tbody.insertAdjacentHTML("beforeend", `
@@ -140,7 +151,8 @@
           </td>
           <td>${formatBytes(size)}</td>
           <td>${pill}</td>
-          <td>${it.factureId ? `<span class="mono">${escapeHtml(it.factureId)}</span>` : `<span class="muted">—</span>`}</td>
+          <td>${dateDisplay}</td>
+          <td>${it.factureId || it.id ? `<span class="mono small">${escapeHtml(String(it.factureId || it.id).substring(0, 12))}...</span>` : `<span class="muted">—</span>`}</td>
           <td>
             <div class="actions">
               <button class="btn small" data-action="remove" data-i="${i}" ${anyBusy ? "disabled" : ""}>Retirer</button>
@@ -149,9 +161,7 @@
           </td>
         </tr>
       `);
-    }
-  }
-
+      
   /**
    * Mettre à jour boutons selon état
    * 

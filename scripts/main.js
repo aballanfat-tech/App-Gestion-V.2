@@ -95,11 +95,11 @@
     }
 
     // Toggle filtres
-document.getElementById('btnToggleFilters')?.addEventListener('click', function() {
-  const filtersBar = document.querySelector('.filters-bar');
-  const btn = this;
+    document.getElementById('btnToggleFilters')?.addEventListener('click', function() {
+    const filtersBar = document.querySelector('.filters-bar');
+    const btn = this;
   
-  if (filtersBar.classList.contains('collapsed')) {
+   if (filtersBar.classList.contains('collapsed')) {
     filtersBar.classList.remove('collapsed');
     btn.classList.remove('collapsed');
     btn.textContent = '🔽 Filtres';

@@ -181,7 +181,15 @@
 
   <!-- Tableau factures -->
   <div style="overflow:auto; margin-top:10px;">
-    <table>
+    <table style="table-layout:fixed; width:100%;">
+      <colgroup>
+        <col style="width:35%">  <!-- FICHIER -->
+        <col style="width:12%">  <!-- TAILLE -->
+        <col style="width:15%">  <!-- STATUT -->
+        <col style="width:13%">  <!-- DATE -->
+        <col style="width:12%">  <!-- ID -->
+        <col style="width:13%">  <!-- ACTIONS -->
+      </colgroup>
       <thead>
         <tr>
           <th data-sort="fileName" style="cursor:pointer; user-select:none;">

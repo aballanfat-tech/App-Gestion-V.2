@@ -395,4 +395,41 @@ th[data-sort].active span {
     width: 100% !important;
     min-width: 100% !important;
   }
+
+   /* Volet filtres réductible */
+.filters-bar {
+  transition: max-height 0.3s ease, opacity 0.3s ease, padding 0.3s ease;
+  overflow: hidden;
+  max-height: 500px;
+  opacity: 1;
 }
+
+.filters-bar.collapsed {
+  max-height: 0;
+  opacity: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* Bouton toggle filtres */
+#btnToggleFilters {
+  transition: transform 0.3s ease;
+}
+
+#btnToggleFilters.collapsed {
+  transform: rotate(-90deg);
+}
+
+/* Tableau largeurs fixes */
+table {
+  border-collapse: collapse;
+}
+
+table th, table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 8px;
+}
+}
+

@@ -2193,8 +2193,13 @@ async function getStoredYearsForClient(client){
           .select('year')
           .eq('client_id', clientData.id);
         
-        if (grillesError) {
-          console.warn(`⚠️ Années cloud inaccessibles (${grillesError.code || grillesError.message})`);
+       if (grillesError) {
+  // Ignorer HTTP 406 silencieusement
+  if (grillesError.message && (grillesError.message.includes('406') || grillesError.code === '406')) {
+    console.log('⚠️ HTTP 406 ignoré (aucune année cloud)');
+  } else {
+    console.warn(`⚠️ Années cloud inaccessibles (${grillesError.code || grillesError.message})`);
+  }
         } else if (grilles && grilles.length > 0) {
           grilles.forEach(g => {
             if (g.year && g.year > 1900 && g.year < 3001) {

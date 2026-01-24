@@ -1449,12 +1449,33 @@ function loadDefaultClients() {
 // Charger grille depuis cloud
 async function loadGridFromCloud(clientId, year) {
   try {
-    console.log(`☁️ Chargement grille cloud: ${clientId} / ${year}`);
+    // ✅ NOUVEAU : Convertir nom en UUID si nécessaire
+    let actualClientId = clientId;
+    
+    // Si clientId n'est pas un UUID (pas de tirets), c'est un nom → convertir
+    if (clientId && !clientId.includes('-')) {
+      console.log(`🔄 Conversion nom "${clientId}" → UUID...`);
+      const { data: clientData, error: clientError } = await supabaseClient
+        .from('clients')
+        .select('id')
+        .eq('name', clientId)
+        .single();
+      
+      if (clientError || !clientData) {
+        console.warn(`⚠️ Client "${clientId}" non trouvé dans cloud`);
+        return null;
+      }
+      
+      actualClientId = clientData.id;
+      console.log(`✅ UUID trouvé: ${actualClientId}`);
+    }
+    
+    console.log(`☁️ Chargement grille cloud: ${actualClientId} / ${year}`);
     
     const { data, error } = await supabaseClient
       .from('grilles')
       .select('*')
-      .eq('client_id', clientId)
+      .eq('client_id', actualClientId)
       .eq('year', year);
     
     // ✅ CORRECTION : Ignorer erreur 406 (Not Acceptable)
@@ -1482,7 +1503,7 @@ async function loadGridFromCloud(clientId, year) {
     return null;
   }
 }
-
+	
 // Sauvegarder grille vers cloud avec versioning
 // Garantir que le client existe dans Supabase (créer si nécessaire)
 async function ensureClientExists(clientName) {

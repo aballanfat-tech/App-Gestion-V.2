@@ -1447,50 +1447,38 @@ function loadDefaultClients() {
 }
 
 // Charger grille depuis cloud
-async function loadGridFromCloud(client, year) {
-  if (!isSupabaseAvailable) {
-    console.warn('⚠️ Supabase indisponible');
-    return null;
-  }
-  
+async function loadGridFromCloud(clientId, year) {
   try {
-    // Trouver client_id
-    const { data: clientData, error: clientError } = await supabaseClient
-      .from('clients')
-      .select('id')
-      .eq('name', client)
-      .single();
+    console.log(`☁️ Chargement grille cloud: ${clientId} / ${year}`);
     
-    if (clientError || !clientData) {
-      // Erreur 406 ou client introuvable - fallback localStorage
-      if (clientError) {
-        console.warn(`⚠️ Client cloud inaccessible (${clientError.code}): ${clientError.message}`);
-      }
-      return null;
-    }
-    
-    // Charger grille
-    const { data: grille, error: grilleError } = await supabaseClient
+    const { data, error } = await supabaseClient
       .from('grilles')
       .select('*')
-      .eq('client_id', clientData.id)
-      .eq('year', year)
-      .single();
+      .eq('client_id', clientId)
+      .eq('year', year);
     
-    if (grilleError || !grille) {
-      // Erreur 406 ou grille introuvable - fallback localStorage
-      if (grilleError && grilleError.code !== 'PGRST116') {
-        // PGRST116 = not found (normal), autres erreurs = problème
-        console.warn(`⚠️ Grille cloud inaccessible (${grilleError.code}): ${grilleError.message}`);
+    // ✅ CORRECTION : Ignorer erreur 406 (Not Acceptable)
+    if (error) {
+      // Si erreur 406 → Traiter comme "pas de données"
+      if (error.message && (error.message.includes('406') || error.code === '406')) {
+        console.log(`⚠️ HTTP 406 ignoré pour année ${year} (traité comme vide)`);
+        return null;
       }
+      // Autres erreurs → lever exception
+      throw error;
+    }
+    
+    if (!data || data.length === 0) {
+      console.log(`ℹ️ Aucune grille cloud pour ${year}`);
       return null;
     }
     
     console.log('☁️ Grille chargée depuis cloud');
-    return grille.data;
+    return data[0];
     
   } catch (error) {
-    console.error('❌ Erreur chargement grille cloud:', error);
+    console.error('❌ Erreur chargement cloud:', error);
+    // ✅ Ne pas bloquer l'application sur erreur
     return null;
   }
 }

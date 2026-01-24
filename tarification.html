@@ -4688,30 +4688,44 @@ document.addEventListener("input", function(e){
   });
 
   document.getElementById("yearSelect").addEventListener("change", async function(e){
-    const sel = e.target;
-    if(sel.value === "__new_year__"){
-      const input = prompt("Nouvelle année (ex : 2027) :");
-      if(!input){ populateYearSelectForClient(getCurrentClient()); updateTitleSubtitle(); return; }
-      const y = parseInt(input,10);
-      if(!y || y<1900 || y>3000){
-        alert("Année invalide.");
-        populateYearSelectForClient(getCurrentClient());
-      }else{
-        populateYearSelectForClient(getCurrentClient());
-        const opt = Array.from(sel.options).find(o=>o.value===String(y));
-        if(!opt){
-          const o = document.createElement("option");
-          o.value = String(y);
-          o.textContent = String(y);
-          sel.insertBefore(o, sel.querySelector('option[value="__new_year__"]'));
-        }
-        sel.value = String(y);
-      }
+   const sel = e.target;
+  if(sel.value === "__new_year__"){
+    const input = prompt("Nouvelle année (ex : 2027) :");
+    if(!input){ 
+      await populateYearSelectForClient(getCurrentClient());  // ✅ await ajouté
+      updateTitleSubtitle(); 
+      return; 
     }
-    updateTitleSubtitle();
-    await loadGrid(); // BUGFIX: Charger depuis cloud
-    await computeEvolutions(); markUnchangedPrices();
-    updateVersionCountForCurrentGrid(); // V11.0.13
+    const y = parseInt(input,10);
+    if(!y || y<1900 || y>3000){
+      alert("Année invalide.");
+      await populateYearSelectForClient(getCurrentClient());  // ✅ await ajouté
+      updateTitleSubtitle();
+      return;
+    } else {
+      // ✅ CORRECTION : await + créer année immédiatement
+      await populateYearSelectForClient(getCurrentClient());  // ✅ await ajouté
+      
+      // Créer l'option si elle n'existe pas
+      const opt = Array.from(sel.options).find(o=>o.value===String(y));
+      if(!opt){
+        const o = document.createElement("option");
+        o.value = String(y);
+        o.textContent = String(y);
+        sel.insertBefore(o, sel.querySelector('option[value="__new_year__"]'));
+      }
+      sel.value = String(y);
+      
+      // ✅ IMPORTANT : Créer grille vide et sauvegarder immédiatement
+      resetGridToInitial();
+      await saveGrid();  // Sauvegarder la grille vide pour créer l'année
+    }
+  }
+  updateTitleSubtitle();
+  await loadGrid();
+  await computeEvolutions(); 
+  markUnchangedPrices();
+  updateVersionCountForCurrentGrid();
   });
 
   document.getElementById("clientSelect").addEventListener("change", async function(e){

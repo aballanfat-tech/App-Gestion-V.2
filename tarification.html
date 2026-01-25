@@ -2501,59 +2501,74 @@ async function deserializeGrid(payload){
       }
     });
     
-    // Charger les données dans chaque tableau
-    tables.forEach(table => {
-      const tableData = payload.tables[table.id];
-      if(tableData && Array.isArray(tableData.rows)){
-        const tbody = document.querySelector(`#${table.id}Table tbody`);
-        if(tbody){
-          tbody.innerHTML = "";
-          tableCounters[table.id] = 0;
+   // Charger les données dans chaque tableau
+tables.forEach(table => {
+  const tableData = payload.tables[table.id];
+  console.log(`🔍 DEBUG: Chargement table "${table.id}"`, tableData);
+  
+  if(tableData && Array.isArray(tableData.rows)){
+    const tbody = document.querySelector(`#${table.id}Table tbody`);
+    if(tbody){
+      console.log(`🔍 DEBUG: tbody trouvé pour ${table.id}, ${tableData.rows.length} lignes à charger`);
+      
+      tbody.innerHTML = "";
+      tableCounters[table.id] = 0;
+      
+      tableData.rows.forEach((r, rowIndex) => {
+        console.log(`🔍 DEBUG: Ligne ${rowIndex + 1}/${tableData.rows.length} - dest="${r.dest}"`);
+        
+        // Pour destinations et transferts, utiliser createRow
+        if(table.id === 'destinations' || table.id === 'transferts'){
+          const tr = createRow(table.id === 'transferts' ? 'transfert' : 'dest');
+          console.log(`🔍 DEBUG: Ligne créée via createRow(), tr=`, tr);
           
-          tableData.rows.forEach(r => {
-            // Pour destinations et transferts, utiliser createRow
-            if(table.id === 'destinations' || table.id === 'transferts'){
-              const tr = createRow(table.id === 'transferts' ? 'transfert' : 'dest');
-              const inputName = tr.querySelector(".dest-name");
-              const trajetSel = tr.querySelector(".trajet-select");
-              const noteEl = tr.querySelector(".note-input");
-              if(inputName) { inputName.value = r.dest || ""; applyTooltip(inputName); }
-              if(trajetSel && r.trajet) trajetSel.value = r.trajet;
-              if(noteEl) { noteEl.value = r.note || ""; applyTooltip(noteEl); }
-              VEHICULES.forEach(cat => {
-                const factVal = r.factures && r.factures[cat] != null ? r.factures[cat] : "";
-                const tarifVal = r.tarifs && typeof r.tarifs[cat] === "number" ? r.tarifs[cat] : null;
-                const f = tr.querySelector(".group-" + cat + " .facture-input");
-                const h = tr.querySelector(".group-" + cat + " .price-input");
-                if(f) { f.value = factVal; applyTooltip(f); }
-                if(h) { h.value = tarifVal != null ? formatNumberFR(tarifVal,2) : ""; applyTooltip(h); }
-              });
-            } else {
-              // Pour les tableaux personnalisés, utiliser addRowToCustomTable
-              addRowToCustomTable(table.id);
-              const rows = tbody.querySelectorAll('tr');
-              const tr = rows[rows.length - 1]; // Dernière ligne ajoutée
-              
-              const inputName = tr.querySelector(".dest-name");
-              const trajetSel = tr.querySelector(".trajet-select");
-              const noteEl = tr.querySelector(".note-input");
-              if(inputName) { inputName.value = r.dest || ""; applyTooltip(inputName); }
-              if(trajetSel && r.trajet) trajetSel.value = r.trajet;
-              if(noteEl) { noteEl.value = r.note || ""; applyTooltip(noteEl); }
-              VEHICULES.forEach(cat => {
-                const factVal = r.factures && r.factures[cat] != null ? r.factures[cat] : "";
-                const tarifVal = r.tarifs && typeof r.tarifs[cat] === "number" ? r.tarifs[cat] : null;
-                const f = tr.querySelector(".group-" + cat + " .facture-input");
-                const h = tr.querySelector(".group-" + cat + " .price-input");
-                if(f) { f.value = factVal; applyTooltip(f); }
-                if(h) { h.value = tarifVal != null ? formatNumberFR(tarifVal,2) : ""; applyTooltip(h); }
-              });
-            }
+          const inputName = tr.querySelector(".dest-name");
+          const trajetSel = tr.querySelector(".trajet-select");
+          const noteEl = tr.querySelector(".note-input");
+          if(inputName) { inputName.value = r.dest || ""; applyTooltip(inputName); }
+          if(trajetSel && r.trajet) trajetSel.value = r.trajet;
+          if(noteEl) { noteEl.value = r.note || ""; applyTooltip(noteEl); }
+          
+          VEHICULES.forEach(cat => {
+            const factVal = r.factures && r.factures[cat] != null ? r.factures[cat] : "";
+            const tarifVal = r.tarifs && typeof r.tarifs[cat] === "number" ? r.tarifs[cat] : null;
+            const f = tr.querySelector(".group-" + cat + " .facture-input");
+            const h = tr.querySelector(".group-" + cat + " .price-input");
+            if(f) { f.value = factVal; applyTooltip(f); }
+            if(h) { h.value = tarifVal != null ? formatNumberFR(tarifVal,2) : ""; applyTooltip(h); }
+          });
+          
+          console.log(`✅ DEBUG: Ligne ${rowIndex + 1} complétée - dest="${inputName?.value}"`);
+        } else {
+          // Pour les tableaux personnalisés, utiliser addRowToCustomTable
+          addRowToCustomTable(table.id);
+          const rows = tbody.querySelectorAll('tr');
+          const tr = rows[rows.length - 1];
+          
+          const inputName = tr.querySelector(".dest-name");
+          const trajetSel = tr.querySelector(".trajet-select");
+          const noteEl = tr.querySelector(".note-input");
+          if(inputName) { inputName.value = r.dest || ""; applyTooltip(inputName); }
+          if(trajetSel && r.trajet) trajetSel.value = r.trajet;
+          if(noteEl) { noteEl.value = r.note || ""; applyTooltip(noteEl); }
+          
+          VEHICULES.forEach(cat => {
+            const factVal = r.factures && r.factures[cat] != null ? r.factures[cat] : "";
+            const tarifVal = r.tarifs && typeof r.tarifs[cat] === "number" ? r.tarifs[cat] : null;
+            const f = tr.querySelector(".group-" + cat + " .facture-input");
+            const h = tr.querySelector(".group-" + cat + " .price-input");
+            if(f) { f.value = factVal; applyTooltip(f); }
+            if(h) { h.value = tarifVal != null ? formatNumberFR(tarifVal,2) : ""; applyTooltip(h); }
           });
         }
-      }
-    });
+      });
+      
+      console.log(`✅ DEBUG: Table ${table.id} terminée, ${tbody.querySelectorAll('tr').length} lignes dans DOM`);
+    } else {
+      console.error(`❌ DEBUG: tbody non trouvé pour ${table.id}`);
+    }
   }
+});
 
   // Restaurer TVA
   if(payload.tva != null){

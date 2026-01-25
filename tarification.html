@@ -2604,8 +2604,9 @@ tables.forEach(table => {
   refreshDestinationSuggestions();
   checkDuplicateDestinations(); // BUGFIX V11.0.21 P0 #3
   await computeEvolutions(); markUnchangedPrices();
-  enableDragAndDrop();
-}
+enableDragAndDrop();
+  }  // ← Ferme le if(payload.tables)
+}    // ← Ferme la fonction deserializeGrid
 
 async function saveGrid(){
   if(READ_ONLY){

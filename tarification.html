@@ -2528,6 +2528,9 @@ async function deserializeGrid(payload){
                 if(f) { f.value = factVal; applyTooltip(f); }
                 if(h) { h.value = tarifVal != null ? formatNumberFR(tarifVal,2) : ""; applyTooltip(h); }
               });
+				
+				 // CORRECTION: Ajouter la ligne au tableau
+              tbody.appendChild(tr);
             } else {
               // Pour les tableaux personnalisés, utiliser addRowToCustomTable
               addRowToCustomTable(table.id);

@@ -2504,23 +2504,19 @@ async function deserializeGrid(payload){
    // Charger les données dans chaque tableau
 tables.forEach(table => {
   const tableData = payload.tables[table.id];
-  console.log(`🔍 DEBUG: Chargement table "${table.id}"`, tableData);
   
   if(tableData && Array.isArray(tableData.rows)){
     const tbody = document.querySelector(`#${table.id}Table tbody`);
     if(tbody){
-      console.log(`🔍 DEBUG: tbody trouvé pour ${table.id}, ${tableData.rows.length} lignes à charger`);
       
       tbody.innerHTML = "";
       tableCounters[table.id] = 0;
       
       tableData.rows.forEach((r, rowIndex) => {
-        console.log(`🔍 DEBUG: Ligne ${rowIndex + 1}/${tableData.rows.length} - dest="${r.dest}"`);
         
         // Pour destinations et transferts, utiliser createRow
         if(table.id === 'destinations' || table.id === 'transferts'){
           const tr = createRow(table.id === 'transferts' ? 'transfert' : 'dest');
-          console.log(`🔍 DEBUG: Ligne créée via createRow(), tr=`, tr);
           
           const inputName = tr.querySelector(".dest-name");
           const trajetSel = tr.querySelector(".trajet-select");
@@ -2538,7 +2534,6 @@ tables.forEach(table => {
             if(h) { h.value = tarifVal != null ? formatNumberFR(tarifVal,2) : ""; applyTooltip(h); }
           });
           
-          console.log(`✅ DEBUG: Ligne ${rowIndex + 1} complétée - dest="${inputName?.value}"`);
         } else {
           // Pour les tableaux personnalisés, utiliser addRowToCustomTable
           addRowToCustomTable(table.id);
@@ -2563,9 +2558,7 @@ tables.forEach(table => {
         }
       });
       
-      console.log(`✅ DEBUG: Table ${table.id} terminée, ${tbody.querySelectorAll('tr').length} lignes dans DOM`);
     } else {
-      console.error(`❌ DEBUG: tbody non trouvé pour ${table.id}`);
     }
   }
 });

@@ -1495,7 +1495,7 @@ async function loadGridFromCloud(clientId, year) {
     }
     
     console.log('☁️ Grille chargée depuis cloud');
-    return data[0];
+	return data[0].data;  // ← Retourner le champ 'data' uniquement
     
   } catch (error) {
     console.error('❌ Erreur chargement cloud:', error);

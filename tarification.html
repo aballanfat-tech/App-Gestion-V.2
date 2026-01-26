@@ -4738,15 +4738,32 @@ if(btnToggleCategories && categoriesContent){
  // BUGFIX V11.0.25: Attendre init Supabase avant de charger années
 // Attendre que initSupabase() termine (max 5 secondes)
 let waitCount = 0;
-while (!isSupabaseAvailable && waitCount < 50) {
+while (!isSupabaseAvailable && waitCount < 100) {  // 10 secondes au lieu de 5
   await new Promise(resolve => setTimeout(resolve, 100));
   waitCount++;
+}
+
+// BUGFIX V11.0.28: Logs debug timeout Supabase
+if (!isSupabaseAvailable) {
+  console.warn('⚠️ Timeout Supabase (10s) : chargement années depuis localStorage uniquement');
+  console.warn('   → Si années manquantes, vérifier connexion réseau');
+} else {
+  console.log('✅ Supabase prêt, chargement années depuis cloud');
 }
 
 await populateYearSelectForClient(getCurrentClient() || "CFMM");
 currentContext.client = getCurrentClient() || "CFMM";
 currentContext.year = getCurrentYear();
 await loadGrid();
+
+// BUGFIX V11.0.28: Reconnexion tardive Supabase
+if (!isSupabaseAvailable) {
+  await new Promise(resolve => setTimeout(resolve, 2000));
+  if (isSupabaseAvailable) {
+    console.log('✅ Supabase connecté tardivement, rechargement menu');
+    await populateYearSelectForClient(getCurrentClient() || "CFMM");
+  }
+}
 
   // === TABLEAUX DYNAMIQUES V10.4.0 ===
   renderTablesManager();

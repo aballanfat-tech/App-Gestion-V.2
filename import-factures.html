@@ -331,53 +331,44 @@
 </script>
 <script src="./scripts/main.js"></script>
 
-  <!-- DEBUG PATCH -->
+  <!-- DEBUG PATCH v2 -->
 <script>
 (function() {
-  console.log('🔧 Patch debug activé');
+  console.log('🔧 Patch debug v2 activé');
   
-  // Attendre que tout soit chargé
   setTimeout(function() {
     const btn = document.getElementById('startBtn');
     
     if (!btn) {
-      console.error('❌ Bouton startBtn introuvable !');
+      console.error('❌ Bouton introuvable');
       return;
     }
     
-    console.log('✅ Bouton trouvé:', btn);
-    console.log('Disabled:', btn.disabled);
+    console.log('✅ Bouton trouvé, Disabled:', btn.disabled);
     
-    // Retirer listeners existants
-    const newBtn = btn.cloneNode(true);
-    btn.parentNode.replaceChild(newBtn, btn);
+    // Ne pas remplacer le bouton, juste forcer enabled
+    btn.disabled = false;
+    console.log('✅ Bouton activé de force');
     
-    // Réattacher avec logs complets
-    newBtn.addEventListener('click', async function(e) {
-      console.log('🔥 CLICK DÉTECTÉ !', e);
+    // Ajouter listener SUPPLÉMENTAIRE (pas de remplacement)
+    btn.addEventListener('click', function(e) {
+      console.log('🔥 CLICK DÉTECTÉ (patch) !');
       
-      const files = StateManager.getFiles();
-      console.log('📁 Fichiers state:', files);
+      const files = StateManager?.getFiles() || [];
+      console.log('📁 Fichiers:', files.length);
       
-      const toProcess = files.filter(f => f.kind === "local" && f.status === "ready");
-      console.log('✅ À traiter:', toProcess);
+      const ready = files.filter(f => f.status === "ready");
+      console.log('✅ Prêts:', ready.length);
       
-      if (toProcess.length === 0) {
-        alert('⚠️ Aucun fichier prêt. Sélectionnez d\'abord un PDF !');
-        return;
+      if (ready.length === 0) {
+        alert('⚠️ Aucun fichier prêt à traiter');
+        e.stopPropagation();
       }
-      
-      try {
-        await handleStartProcessing();
-      } catch (err) {
-        console.error('❌ Erreur:', err);
-        alert('❌ Erreur: ' + err.message);
-      }
-    });
+    }, true); // true = capture phase
     
-    console.log('✅ Patch appliqué, bouton réinitialisé avec logs');
+    console.log('✅ Patch v2 appliqué');
     
-  }, 1000); // Attendre 1 seconde après init
+  }, 1000);
 })();
 </script>
 

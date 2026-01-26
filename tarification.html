@@ -2349,27 +2349,26 @@ async function getStoredYearsForClient(client){
     }
   }
   
-  // 2. FALLBACK : localStorage (uniquement si cloud échoue OU pour compléter)
-  if (!cloudSuccess || years.size === 0) {
-    console.log(`ℹ️ Chargement années depuis localStorage pour ${client}...`);
-    const prefix = STORAGE_PREFIX + client + "::";
-    for(let i=0;i<localStorage.length;i++){
-      const key = localStorage.key(i);
-      if(!key || !key.startsWith(prefix)) continue;
-      const yStr = key.substring(prefix.length);
-      const yNum = parseInt(yStr,10);
-      if(yNum && yNum>1900 && yNum<3001) years.add(yNum);
-    }
+  // 2. FALLBACK : localStorage (UNIQUEMENT si cloud a échoué)
+if (!cloudSuccess) {
+  console.log(`ℹ️ Chargement années depuis localStorage pour ${client}...`);
+  const prefix = STORAGE_PREFIX + client + "::";
+  for(let i=0;i<localStorage.length;i++){
+    const key = localStorage.key(i);
+    if(!key || !key.startsWith(prefix)) continue;
+    const yStr = key.substring(prefix.length);
+    const yNum = parseInt(yStr,10);
+    if(yNum && yNum>1900 && yNum<3001) years.add(yNum);
   }
   
-  // 3. Si toujours rien, ajouter année courante par défaut
+  // Si toujours rien après localStorage, ajouter année courante
   if (years.size === 0) {
     console.log(`ℹ️ Aucune année trouvée pour ${client}, ajout année courante ${nowYear}`);
     years.add(nowYear);
+ 	 }
   }
-  
   console.log(`✅ Total ${years.size} année(s) pour ${client}:`, Array.from(years).sort((a,b)=>a-b));
-  return Array.from(years).sort((a,b)=>a-b);
+return Array.from(years).sort((a,b)=>a-b);
 }
 
 // BUGFIX V11.0.20: async car getStoredYearsForClient est async

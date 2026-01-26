@@ -474,8 +474,20 @@
           console.log(`✅ Fichier ${i+1}/${toProcess.length} terminé`);
         }
         
-        UIRenderer.showTempMessage("ok", "✅ Traitement terminé !");
+      UIRenderer.showTempMessage("ok", "✅ Traitement terminé !");
         console.log('🎉 TOUS LES FICHIERS TRAITÉS !');
+        
+        // BUGFIX: Rafraîchir l'UI pour afficher les fichiers traités
+        setTimeout(function() {
+          if (typeof renderApp === 'function') {
+            renderApp();
+          } else {
+            // Fallback: recharger la page
+            location.reload();
+          }
+        }, 500);
+        
+      } catch(err) {
         
       } catch(err) {
         console.error('❌ ERREUR TRAITEMENT:', err);

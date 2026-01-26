@@ -331,10 +331,10 @@
 </script>
 <script src="./scripts/main.js"></script>
 
-<!-- PATCH FINAL v3.1 - TOUS ONGLETS FONCTIONNELS -->
+<!-- PATCH v3.2 - Tout dans donnees_brutes -->
 <script>
 (function() {
-  console.log('🔧 Patch final v3.1 - Correction onglets');
+  console.log('🔧 Patch v3.2 - Données complètes');
   
   setTimeout(async function() {
     const btn = document.getElementById('startBtn');
@@ -419,48 +419,58 @@
           const arrayBufferCopy2 = arrayBuffer.slice(0);
           
           const fullText = await PDFExtractor.extractPdfTextFromArrayBuffer(arrayBufferCopy1);
-          console.log('✅ Texte extrait:', fullText.substring(0, 100) + '...');
+          console.log('✅ Texte extrait (longueur):', fullText.length);
+          console.log('📄 Aperçu texte:', fullText.substring(0, 200));
           
           const pagesXY = await PDFExtractor.extractPdfItemsXY(arrayBufferCopy2);
           console.log('✅ Items XY extraits:', pagesXY.length, 'pages');
           
           console.log('🔍 Parsing champs...');
           const fields = ParserModule.parseFieldsRobust(fullText);
-          console.log('✅ Champs parsés:', fields);
+          console.log('✅ Champs parsés:', JSON.stringify(fields));
           
           const table = [];
           for(let p = 0; p < pagesXY.length; p++) {
             const pageItems = pagesXY[p].items;
             const extracted = ParserModule.extractTableFromXY(pageItems, fullText);
             
+            console.log(`📊 Page ${p+1}: ${extracted.services.length} services trouvés`);
+            
             if(extracted.services.length > 0) {
               table.push(extracted);
             }
           }
           
-          console.log('✅ Tableau extrait:', table);
+          console.log('✅ Tableau extrait:', JSON.stringify(table));
           
-          // CORRECTION : Sauvegarder texte_ocr séparément
+          // SOLUTION : Tout sauvegarder dans donnees_brutes + texte_ocr
+          const donneesCompletes = {
+            fullText: fullText,
+            fields: fields,
+            table: table,
+            _meta: {
+              extracted_at: new Date().toISOString(),
+              version: "v3.2"
+            }
+          };
+          
+          console.log('💾 Sauvegarde complète...');
           const updateResult = await SupabaseClient.updateFacture(factureId, {
             statut: "extracted",
-            texte_ocr: fullText,  // ← CORRECTION ICI
-            donnees_brutes: {
-              fullText: fullText,
-              fields: fields,
-              table: table
-            }
+            texte_ocr: fullText,           // Pour l'onglet Texte OCR
+            donnees_brutes: donneesCompletes  // Tout le reste
           });
           
           if(updateResult.error) {
             console.error('⚠️ Erreur update:', updateResult.error);
           } else {
-            console.log('✅ Données sauvegardées avec texte_ocr');
+            console.log('✅ Données sauvegardées complètement');
           }
           
           StateManager.updateFile(fileName, { 
             status: "done",
             factureId: factureId,
-            extracted: { fields, table }
+            extracted: { fields, table, fullText }
           });
           
           console.log(`✅ Fichier ${i+1}/${toProcess.length} terminé`);
@@ -481,10 +491,70 @@
       }
     });
     
-    console.log('✅ Patch v3.1 appliqué - Tous onglets corrigés');
+    console.log('✅ Patch v3.2 appliqué');
     
   }, 1500);
 })();
 </script>
+
+  <!-- PATCH v3.3 - Fix onglets modale -->
+<script>
+(function() {
+  console.log('🔧 Patch v3.3 - Fix affichage onglets');
+  
+  // Attendre que l'app soit initialisée
+  setTimeout(function() {
+    
+    // Intercepter les clics sur les lignes du tableau
+    const tbody = document.getElementById('tbody');
+    if (!tbody) return;
+    
+    tbody.addEventListener('click', function(e) {
+      const row = e.target.closest('tr[data-idx]');
+      if (!row) return;
+      
+      console.log('🔍 Intercept click ligne facture');
+      
+      // Attendre que la modale soit ouverte
+      setTimeout(function() {
+        const viewerData = StateManager?.getViewerData();
+        
+        if (!viewerData) {
+          console.warn('⚠️ Pas de viewerData');
+          return;
+        }
+        
+        console.log('📊 ViewerData:', viewerData);
+        
+        // CORRECTION : Si rawText vide, utiliser fullText
+        if (!viewerData.rawText && viewerData.data?.fullText) {
+          console.log('🔧 Correction: rawText vide, utilisation fullText');
+          const fullText = viewerData.data.fullText;
+          
+          // Mettre à jour l'état
+          StateManager.setViewerData(
+            viewerData.data, 
+            viewerData.factureId, 
+            fullText
+          );
+          
+          // Rafraîchir les onglets
+          UIRenderer.renderHighlightedText(fullText, []);
+          UIRenderer.renderDebugJson(viewerData.data);
+          
+          console.log('✅ Onglets corrigés avec fullText');
+        } else if (viewerData.rawText) {
+          console.log('✅ rawText présent, pas de correction nécessaire');
+        }
+      }, 500);
+      
+    }, true); // true = capture phase
+    
+    console.log('✅ Patch v3.3 appliqué');
+    
+  }, 2000);
+})();
+</script>
+  
 </body>
 </html>

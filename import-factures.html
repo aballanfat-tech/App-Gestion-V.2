@@ -331,10 +331,10 @@
 </script>
 <script src="./scripts/main.js"></script>
 
-<!-- PATCH FINAL v3 COMPLET -->
+<!-- PATCH FINAL v3.1 - TOUS ONGLETS FONCTIONNELS -->
 <script>
 (function() {
-  console.log('🔧 Patch final v3');
+  console.log('🔧 Patch final v3.1 - Correction onglets');
   
   setTimeout(async function() {
     const btn = document.getElementById('startBtn');
@@ -440,8 +440,10 @@
           
           console.log('✅ Tableau extrait:', table);
           
+          // CORRECTION : Sauvegarder texte_ocr séparément
           const updateResult = await SupabaseClient.updateFacture(factureId, {
             statut: "extracted",
+            texte_ocr: fullText,  // ← CORRECTION ICI
             donnees_brutes: {
               fullText: fullText,
               fields: fields,
@@ -451,6 +453,8 @@
           
           if(updateResult.error) {
             console.error('⚠️ Erreur update:', updateResult.error);
+          } else {
+            console.log('✅ Données sauvegardées avec texte_ocr');
           }
           
           StateManager.updateFile(fileName, { 
@@ -477,7 +481,7 @@
       }
     });
     
-    console.log('✅ Patch v3 appliqué - Handler complet');
+    console.log('✅ Patch v3.1 appliqué - Tous onglets corrigés');
     
   }, 1500);
 })();

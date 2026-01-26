@@ -331,5 +331,55 @@
 </script>
 <script src="./scripts/main.js"></script>
 
+  <!-- DEBUG PATCH -->
+<script>
+(function() {
+  console.log('🔧 Patch debug activé');
+  
+  // Attendre que tout soit chargé
+  setTimeout(function() {
+    const btn = document.getElementById('startBtn');
+    
+    if (!btn) {
+      console.error('❌ Bouton startBtn introuvable !');
+      return;
+    }
+    
+    console.log('✅ Bouton trouvé:', btn);
+    console.log('Disabled:', btn.disabled);
+    
+    // Retirer listeners existants
+    const newBtn = btn.cloneNode(true);
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    // Réattacher avec logs complets
+    newBtn.addEventListener('click', async function(e) {
+      console.log('🔥 CLICK DÉTECTÉ !', e);
+      
+      const files = StateManager.getFiles();
+      console.log('📁 Fichiers state:', files);
+      
+      const toProcess = files.filter(f => f.kind === "local" && f.status === "ready");
+      console.log('✅ À traiter:', toProcess);
+      
+      if (toProcess.length === 0) {
+        alert('⚠️ Aucun fichier prêt. Sélectionnez d\'abord un PDF !');
+        return;
+      }
+      
+      try {
+        await handleStartProcessing();
+      } catch (err) {
+        console.error('❌ Erreur:', err);
+        alert('❌ Erreur: ' + err.message);
+      }
+    });
+    
+    console.log('✅ Patch appliqué, bouton réinitialisé avec logs');
+    
+  }, 1000); // Attendre 1 seconde après init
+})();
+</script>
+
 </body>
 </html>

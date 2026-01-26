@@ -4971,14 +4971,14 @@ await loadGrid();
       sel.value = opt.value;
     }
     
-    // BUGFIX V11.0.26: Recharger menu années pour le nouveau client
-    await populateYearSelectForClient(sel.value);
-    
-    // BUGFIX V11.0.28: Sauvegarder client sélectionné
-    localStorage.setItem('lastClient', sel.value);
-    currentContext.client = sel.value;
-    
-    updateTitleSubtitle();
+   // BUGFIX V11.0.26: Recharger menu années pour le nouveau client
+await populateYearSelectForClient(sel.value);
+
+// BUGFIX V11.0.28: Sauvegarder client sélectionné
+localStorage.setItem('lastClient', sel.value);
+currentContext.client = sel.value;
+
+updateTitleSubtitle();
     await loadGrid(); // BUGFIX: Charger depuis cloud
     await computeEvolutions(); markUnchangedPrices();
     updateVersionCountForCurrentGrid(); // V11.0.13

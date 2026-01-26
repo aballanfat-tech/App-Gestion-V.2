@@ -2677,8 +2677,27 @@ tables.forEach(table => {
   syncAllTTCFromHT();
   refreshDestinationSuggestions();
   checkDuplicateDestinations(); // BUGFIX V11.0.21 P0 #3
-  await computeEvolutions(); markUnchangedPrices();
+ await computeEvolutions(); markUnchangedPrices();
+
+  // BUGFIX V11.0.27: Réorganiser les cards selon tablesOrder sauvegardé
+  if (payload.tablesOrder && payload.tablesOrder.length > 0) {
+    const majorationsCard = document.querySelector('.card-majorations');
+    if (majorationsCard) {
+      // Réorganiser dans l'ordre inverse pour que le premier soit juste après majorations
+      const order = [...payload.tablesOrder].reverse();
+      order.forEach(tableId => {
+        const card = document.querySelector(`.card[data-table-id="${tableId}"]`);
+        if (card) {
+          // Insérer juste après majorations
+          majorationsCard.parentNode.insertBefore(card, majorationsCard.nextSibling);
+        }
+      });
+      console.log('✅ Ordre tableaux restauré:', payload.tablesOrder);
+    }
+  }
+
 enableDragAndDrop();
+
   }  // ← Ferme le if(payload.tables)
 }    // ← Ferme la fonction deserializeGrid
 

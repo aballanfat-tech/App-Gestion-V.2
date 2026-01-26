@@ -1573,20 +1573,42 @@ async function saveGridToCloud(client, year, data) {
     let grilleId;
     
     if (!existingGrille) {
-      // Créer nouvelle grille
-      const { data: newGrille } = await supabaseClient
-        .from('grilles')
-        .insert({
-          client_id: clientId,
-          year: year,
-          data: data,
-          tva: data.tva || 10
-        })
-        .select('id')
-        .single();
-      
-      grilleId = newGrille.id;
-      console.log('✅ Nouvelle grille créée dans cloud');
+// Créer nouvelle grille
+const { data: newGrille, error: insertError } = await supabaseClient
+  .from('grilles')
+  .insert({
+    client_id: clientId,
+    year: year,
+    data: data,
+    tva: data.tva || 10
+  })
+  .select('id')
+  .single();
+
+if (insertError) {
+  // Si HTTP 409 (conflit/doublon), charger la grille existante
+  if (insertError.code === '23505' || insertError.message?.includes('duplicate')) {
+    console.log('⚠️ Grille existe déjà (conflit ignoré), chargement...');
+    const { data: existingData } = await supabaseClient
+      .from('grilles')
+      .select('id')
+      .eq('client_id', clientId)
+      .eq('year', year)
+      .single();
+    
+    if (existingData) {
+      grilleId = existingData.id;
+    } else {
+      throw new Error('Impossible de créer ou charger la grille');
+    }
+  } else {
+    throw insertError;
+  }
+} else {
+  grilleId = newGrille.id;
+  console.log('✅ Nouvelle grille créée dans cloud');
+}
+
     } else {
       // Mettre à jour grille existante
       grilleId = existingGrille.id;
@@ -1628,13 +1650,12 @@ async function createVersion(grilleId, clientId, year, data) {
 const { data: insertedVersion, error: insertError } = await supabaseClient
   .from('grilles_versions')
   .insert({
-    grille_id: grilleId,
-    client_id: clientId,
-    year: year,
-    version_number: nextVersion,
-    data: data,
-    comment: 'Auto-save'
-  })
+  grille_id: grilleId,
+  version_number: nextVersion,
+  data: data,
+  comment: 'Auto-save'
+})
+
   .select();
 
 if (insertError) {

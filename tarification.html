@@ -2677,6 +2677,19 @@ tables.forEach(table => {
   syncAllTTCFromHT();
   refreshDestinationSuggestions();
   checkDuplicateDestinations(); // BUGFIX V11.0.21 P0 #3
+
+	  syncAllTTCFromHT();
+  refreshDestinationSuggestions();
+  checkDuplicateDestinations(); // BUGFIX V11.0.21 P0 #3
+  
+  // BUGFIX V11.0.28: Restaurer les noms personnalisés des tableaux
+  tables.forEach(table => {
+    const titleEl = document.getElementById(table.id + 'Title');
+    if(titleEl){
+      titleEl.textContent = `${table.icon} ${table.name}`;
+    }
+  });
+	  
  await computeEvolutions(); markUnchangedPrices();
 
   // BUGFIX V11.0.27: Réorganiser les cards selon tablesOrder sauvegardé
@@ -5370,7 +5383,7 @@ await loadGrid();
   });
   
   // Dupliquer année
-  document.getElementById("btnDuplicateYear").addEventListener("click", function(){
+document.getElementById("btnDuplicateYear").addEventListener("click", async function(){
     const client = getCurrentClient();
     const currentYear = parseInt(getCurrentYear(), 10);
     
@@ -5406,7 +5419,7 @@ await loadGrid();
     }
     
     // Vérifier si l'année existe déjà
-    const existingYears = getStoredYearsForClient(client);
+	const existingYears = await getStoredYearsForClient(client);
     if(existingYears.includes(newYear)){
       if(!confirm(`L'année ${newYear} existe déjà pour ${client}.\n\nVoulez-vous écraser les données ?`)){
         return;
@@ -5456,10 +5469,28 @@ await loadGrid();
     // Sauvegarder
     const key = getContextKey(client, newYear);
     try {
-      localStorage.setItem(key, JSON.stringify(newData));
-      
-      // Mettre à jour interface
-      populateYearSelectForClient(client, newYear);
+  localStorage.setItem(key, JSON.stringify(newData));
+  
+  // BUGFIX V11.0.28: Sauvegarder aussi dans cloud
+  if(isSupabaseAvailable){
+    const clientUuid = await getClientUuid(client);
+    if(clientUuid){
+      await supabaseClient
+        .from('grilles')
+        .upsert({
+          client_id: clientUuid,
+          year: newYear,
+          data: newData,
+          tva: newData.tva || 10
+        }, {
+          onConflict: 'client_id,year'
+        });
+      console.log(`✅ Année ${newYear} dupliquée dans cloud`);
+    }
+  }
+  
+  // Mettre à jour interface
+  await populateYearSelectForClient(client, newYear);
       document.getElementById("yearSelect").value = newYear;
       loadGridForCurrentContext();
       triggerComputeEvolutions();

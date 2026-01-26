@@ -4824,9 +4824,11 @@ document.addEventListener("input", function(e){
       resetGridToInitial();
       await saveGrid();  // Sauvegarder la grille vide pour créer l'année
     }
-  }
-  updateTitleSubtitle();
-  await loadGrid();
+}
+// BUGFIX V11.0.26: Recharger le menu années pour le nouveau client
+await populateYearSelectForClient(sel.value);
+updateTitleSubtitle();
+await loadGrid();
   await computeEvolutions(); 
   markUnchangedPrices();
   updateVersionCountForCurrentGrid();

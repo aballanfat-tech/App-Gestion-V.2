@@ -2487,19 +2487,27 @@ async function deserializeGrid(payload){
       }
     });
     
-    // Créer les tableaux personnalisés
-    const customTables = tables.filter(t => t.id !== 'destinations' && t.id !== 'transferts');
-    customTables.forEach(table => {
-      const card = createTableHTML(table);
-      if(card){
-        const lastCard = document.querySelector('.card:last-of-type');
-        if(lastCard){
-          lastCard.parentNode.insertBefore(card, lastCard.nextSibling);
-        } else {
-          document.querySelector('.page').appendChild(card);
-        }
+ // Créer les tableaux personnalisés
+const customTables = tables.filter(t => t.id !== 'destinations' && t.id !== 'transferts');
+customTables.forEach(table => {
+  const card = createTableHTML(table);
+  if(card){
+    // BUGFIX V11.0.25 P0-2: Insérer AVANT la section majorations
+    const majorationsCard = document.querySelector('.card-majorations');
+    if(majorationsCard){
+      majorationsCard.parentNode.insertBefore(card, majorationsCard);
+    } else {
+      // Fallback: insérer à la fin si section majorations introuvable
+      const lastCard = document.querySelector('.card:last-of-type');
+      if(lastCard){
+        lastCard.parentNode.insertBefore(card, lastCard.nextSibling);
+      } else {
+        document.querySelector('.page').appendChild(card);
       }
-    });
+    }
+  }
+});
+
     
    // Charger les données dans chaque tableau
 tables.forEach(table => {
@@ -4574,13 +4582,19 @@ if(btnToggleCategories && categoriesContent){
   const searchInput = document.getElementById("searchInput");
   if(searchInput) searchInput.addEventListener("input", applySearchFilter);
 
-  await populateYearSelectForClient(getCurrentClient() || "CFMM"); // BUGFIX V11.0.20: await
-  currentContext.client = getCurrentClient() || "CFMM";
-  currentContext.year = getCurrentYear();
-  await loadGrid(); // BUGFIX: Charger depuis cloud au démarrage
-  applyReadOnlyMode();
-  updateVersionCountForCurrentGrid(); // V11.0.13 - Charger compteur versions
-  
+ // BUGFIX V11.0.25: Attendre init Supabase avant de charger années
+// Attendre que initSupabase() termine (max 5 secondes)
+let waitCount = 0;
+while (!isSupabaseAvailable && waitCount < 50) {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  waitCount++;
+}
+
+await populateYearSelectForClient(getCurrentClient() || "CFMM");
+currentContext.client = getCurrentClient() || "CFMM";
+currentContext.year = getCurrentYear();
+await loadGrid();
+
   // === TABLEAUX DYNAMIQUES V10.4.0 ===
   renderTablesManager();
   // === FIN TABLEAUX DYNAMIQUES ===

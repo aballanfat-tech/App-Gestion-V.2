@@ -723,6 +723,44 @@ body.hide-facture-columns .col-no {
   justify-content: flex-end;
 }
 /* === FIN MODALE RÉORGANISATION === */
+
+	/* Drag & Drop Cards */
+.card-draggable {
+  position: relative;
+  cursor: move;
+}
+
+.card-drag-handle {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 20px;
+  color: #999;
+  cursor: grab;
+  user-select: none;
+  padding: 5px;
+  line-height: 1;
+}
+
+.card-drag-handle:hover {
+  color: #333;
+  background: rgba(0,0,0,0.05);
+  border-radius: 4px;
+}
+
+.card-drag-handle:active {
+  cursor: grabbing;
+}
+
+.card-dragging {
+  opacity: 0.5;
+  border: 2px dashed #2196f3;
+}
+
+.card-fixed {
+  /* Cards non déplaçables */
+  cursor: default;
+}
   
 </style>
 
@@ -1139,7 +1177,8 @@ body.hide-facture-columns .col-no {
   
 
 
-  <div class="card">
+<div class="card card-draggable" data-table-id="destinations">
+    <div class="card-drag-handle" draggable="true">⋮⋮</div>
     <h2 id="destinationsTitle">📍 Destinations</h2>
     <p>Destinations personnalisables. Tri par fréquence, alphabet ou ordre initial.</p>
     <div class="sort-controls">
@@ -1202,7 +1241,8 @@ body.hide-facture-columns .col-no {
     </p>
   </div>
 
-  <div class="card">
+<div class="card card-draggable" data-table-id="transferts">
+    <div class="card-drag-handle" draggable="true">⋮⋮</div>
     <h2 id="transfertsTitle">🚉 Transferts (gares / aéroports)</h2>
     <p>Lignes dédiées aux transferts. Les règles sont identiques aux destinations (HT/TTC, évolution, majoration, notes).</p>
     <div class="table-wrapper">
@@ -3449,15 +3489,23 @@ function deleteTable(tableId){
 function createTableHTML(table){
   try {
     // Créer la carte
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.id = table.id + 'Card';
-    
-    // Titre
-    const h2 = document.createElement('h2');
-    h2.id = table.id + 'Title';
-    h2.textContent = `${table.icon} ${table.name}`;
-    card.appendChild(h2);
+const card = document.createElement('div');
+card.className = 'card card-draggable';
+card.id = table.id + 'Card';
+card.setAttribute('data-table-id', table.id);
+
+// Ajouter handle de drag
+const dragHandle = document.createElement('div');
+dragHandle.className = 'card-drag-handle';
+dragHandle.setAttribute('draggable', 'true');
+dragHandle.textContent = '⋮⋮';
+card.appendChild(dragHandle);
+
+// Titre
+const h2 = document.createElement('h2');
+h2.id = table.id + 'Title';
+h2.textContent = `${table.icon} ${table.name}`;
+card.appendChild(h2);
     
     // Description
     const p = document.createElement('p');

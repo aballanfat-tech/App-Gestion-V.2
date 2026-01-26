@@ -1438,32 +1438,37 @@ async function loadClientsFromCloud() {
     
     if (error) throw error;
     
-    const clientSelect = document.getElementById('clientSelect');
-    if (!clientSelect) return;
-    
-    // Vider sélecteur
-    clientSelect.innerHTML = '';
-    
-    // Ajouter clients
-    clients.forEach(client => {
-      const option = document.createElement('option');
-      option.value = client.name;
-      option.textContent = client.name;
-      clientSelect.appendChild(option);
-    });
-    
-    // Ajouter "Nouveau client"
-    const optNew = document.createElement('option');
-    optNew.value = '__new_client__';
-    optNew.textContent = '+ Nouveau client...';
-    clientSelect.appendChild(optNew);
-    
-    console.log(`✅ ${clients.length} clients chargés depuis cloud`);
-    
-  } catch (error) {
-    console.error('❌ Erreur chargement clients:', error);
-    loadDefaultClients();
-  }
+   const clientSelect = document.getElementById('clientSelect');
+if (!clientSelect) return;
+
+// BUGFIX V11.0.28: Sauvegarder sélection actuelle
+const savedClient = clientSelect.value || currentContext.client || "CFMM";
+
+// Vider sélecteur
+clientSelect.innerHTML = '';
+
+// Ajouter clients
+clients.forEach(client => {
+  const option = document.createElement('option');
+  option.value = client.name;
+  option.textContent = client.name;
+  clientSelect.appendChild(option);
+});
+
+// Ajouter "Nouveau client"
+const optNew = document.createElement('option');
+optNew.value = '__new_client__';
+optNew.textContent = '+ Nouveau client...';
+clientSelect.appendChild(optNew);
+
+// BUGFIX V11.0.28: Restaurer sélection
+if (savedClient && Array.from(clientSelect.options).some(o => o.value === savedClient)) {
+  clientSelect.value = savedClient;
+  console.log(`✅ ${clients.length} clients chargés depuis cloud, "${savedClient}" sélectionné`);
+} else {
+  // Si client sauvegardé inexistant, sélectionner le premier
+  clientSelect.value = clients[0]?.name || '';
+  console.log(`✅ ${clients.length} clients chargés depuis cloud, "${clientSelect.value}" sélectionné par défaut`);
 }
 // ============================================================================
 // BUGFIX V11.0.28: Fonction utilitaire conversion nom client → UUID
@@ -4999,6 +5004,11 @@ await loadGrid();
     if(!confirm("Supprimer le client « " + label + " » de la liste ? (Les données sauvegardées resteront dans le navigateur)")) return;
     sel.remove(sel.selectedIndex);
     sel.value = "CFMM";
+	  }
+
+// BUGFIX V11.0.28: Sauvegarder client sélectionné
+localStorage.setItem('lastClient', sel.value);
+currentContext.client = sel.value;
     updateTitleSubtitle();
     triggerComputeEvolutions();
   });

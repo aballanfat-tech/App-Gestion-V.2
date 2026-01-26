@@ -495,8 +495,9 @@ async function handleReload() {
     const facture = result.data;
 
     // Charger dans state
-    StateManager.setViewerData(facture.donnees_brutes || {}, facture.id, facture.texte_ocr || "");
-
+    // BUGFIX: Si texte_ocr vide, utiliser fullText depuis donnees_brutes
+const rawText = facture.texte_ocr || facture.donnees_brutes?.fullText || "";
+StateManager.setViewerData(facture.donnees_brutes || {}, facture.id, rawText);
     // Extraire lignes pour édition
     const lines = extractLinesFromData(facture.donnees_brutes);
     StateManager.setViewerLines(lines);

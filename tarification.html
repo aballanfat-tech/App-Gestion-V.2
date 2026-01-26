@@ -1649,11 +1649,10 @@ async function createVersion(grilleId, clientId, year, data) {
   // Insérer nouvelle version
 const { data: insertedVersion, error: insertError } = await supabaseClient
   .from('grilles_versions')
-  .insert({
+ .insert({
   grille_id: grilleId,
   version_number: nextVersion,
-  data: data,
-  comment: 'Auto-save'
+  data: data
 })
 
   .select();

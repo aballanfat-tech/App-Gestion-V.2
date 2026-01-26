@@ -1438,8 +1438,11 @@ async function loadClientsFromCloud() {
     
     if (error) throw error;
     
-    const clientSelect = document.getElementById('clientSelect');
+   const clientSelect = document.getElementById('clientSelect');
     if (!clientSelect) return;
+    
+    // BUGFIX V11.0.28: Sauvegarder sélection actuelle
+    const savedClient = clientSelect.value || localStorage.getItem('lastClient') || currentContext.client || "CFMM";
     
     // Vider sélecteur
     clientSelect.innerHTML = '';
@@ -1458,7 +1461,15 @@ async function loadClientsFromCloud() {
     optNew.textContent = '+ Nouveau client...';
     clientSelect.appendChild(optNew);
     
-    console.log(`✅ ${clients.length} clients chargés depuis cloud`);
+    // BUGFIX V11.0.28: Restaurer sélection
+    if (savedClient && Array.from(clientSelect.options).some(o => o.value === savedClient)) {
+      clientSelect.value = savedClient;
+      console.log(`✅ ${clients.length} clients chargés depuis cloud, "${savedClient}" sélectionné`);
+    } else {
+      // Si client sauvegardé inexistant, sélectionner le premier
+      clientSelect.value = clients[0]?.name || '';
+      console.log(`✅ ${clients.length} clients chargés depuis cloud, "${clientSelect.value}" sélectionné par défaut`);
+    }
     
   } catch (error) {
     console.error('❌ Erreur chargement clients:', error);
@@ -4966,8 +4977,12 @@ await loadGrid();
       sel.value = opt.value;
     }
     
-    // BUGFIX V11.0.26: Recharger menu années pour le nouveau client
+  // BUGFIX V11.0.26: Recharger menu années pour le nouveau client
     await populateYearSelectForClient(sel.value);
+    
+    // BUGFIX V11.0.28: Sauvegarder client sélectionné
+    localStorage.setItem('lastClient', sel.value);
+    currentContext.client = sel.value;
     
     updateTitleSubtitle();
     await loadGrid(); // BUGFIX: Charger depuis cloud

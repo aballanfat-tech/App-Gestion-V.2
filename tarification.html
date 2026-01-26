@@ -1624,19 +1624,30 @@ async function createVersion(grilleId, clientId, year, data) {
     
     const nextVersion = (count || 0) + 1;
     
-    // Insérer nouvelle version
-    await supabaseClient
-      .from('grilles_versions')
-      .insert({
-        grille_id: grilleId,
-        client_id: clientId,
-        year: year,
-        version_number: nextVersion,
-        data: data,
-        comment: 'Auto-save'
-      });
-    
-    console.log(`✅ Version ${nextVersion} créée`);
+  // Insérer nouvelle version
+const { data: insertedVersion, error: insertError } = await supabaseClient
+  .from('grilles_versions')
+  .insert({
+    grille_id: grilleId,
+    client_id: clientId,
+    year: year,
+    version_number: nextVersion,
+    data: data,
+    comment: 'Auto-save'
+  })
+  .select();
+
+if (insertError) {
+  console.error('❌ Erreur INSERT version:', insertError);
+  console.error('   Code:', insertError.code);
+  console.error('   Message:', insertError.message);
+  console.error('   Details:', insertError.details);
+  console.error('   Hint:', insertError.hint);
+  throw insertError;
+}
+
+console.log(`✅ Version ${nextVersion} créée`, insertedVersion);
+
     
     // Nettoyer anciennes versions (garder 50 max)
     await cleanOldVersions(grilleId, 50);

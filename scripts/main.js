@@ -82,7 +82,20 @@
 
     // Upload
     document.getElementById("fileInput")?.addEventListener("change", handleFileSelect);
-    document.getElementById("startBtn")?.addEventListener("click", handleStartProcessing);
+   const startBtn = document.getElementById("startBtn");
+if (startBtn) {
+  startBtn.addEventListener("click", async function(e) {
+    console.log('🔥 Bouton Uploader cliqué');
+    await handleStartProcessing();
+  });
+  
+  // BUGFIX: Vérifier périodiquement si des fichiers sont prêts
+  setInterval(function() {
+    const files = StateManager.getFiles();
+    const ready = files.filter(f => f.kind === "local" && f.status === "ready");
+    startBtn.disabled = (ready.length === 0);
+  }, 500);
+}
     document.getElementById("clearBtn")?.addEventListener("click", handleClearLocal);
     document.getElementById("reloadBtn")?.addEventListener("click", handleReload);
     document.getElementById('btnToggleFilters')?.addEventListener('click', function() {

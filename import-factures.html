@@ -330,6 +330,86 @@
 })();
 </script>
 <script src="./scripts/main.js"></script>
+
+<!-- PATCH CSS - Fix affichage onglets -->
+<style>
+/* Forcer affichage des onglets */
+#tab-edit.active,
+#tab-table.active,
+#tab-text.active,
+#tab-debug.active {
+  display: block !important;
+}
+
+#tab-edit,
+#tab-table,
+#tab-text,
+#tab-debug {
+  display: none;
+}
+
+#tab-edit.active {
+  display: block !important;
+}
+</style>
+
+<script>
+// Forcer changement onglet au clic
+document.addEventListener('click', function(e) {
+  const tab = e.target.closest('.tab');
+  if (!tab) return;
+  
+  const tabName = tab.dataset.tab;
+  console.log('🔥 Onglet cliqué:', tabName);
+  
+  // Retirer active de tous les onglets
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('[id^="tab-"]').forEach(t => t.classList.remove('active'));
+  
+  // Ajouter active à l'onglet cliqué
+  tab.classList.add('active');
+  const targetDiv = document.getElementById('tab-' + tabName);
+  if (targetDiv) {
+    targetDiv.classList.add('active');
+    console.log('✅ Onglet affiché:', tabName);
+  }
+  
+  // Forcer affichage du contenu
+  setTimeout(function() {
+    const vd = StateManager.getViewerData();
+    
+    if (tabName === 'text' && targetDiv) {
+      const txt = vd.rawText || vd.data?.fullText || "";
+      if (txt) {
+        document.getElementById('textHtml').textContent = txt;
+        console.log('✅ Texte affiché:', txt.length, 'car');
+      }
+    }
+    
+    if (tabName === 'debug' && targetDiv) {
+      if (vd.data) {
+        document.getElementById('debugJson').textContent = JSON.stringify(vd.data, null, 2);
+        console.log('✅ JSON affiché');
+      }
+    }
+    
+    if (tabName === 'table' && targetDiv) {
+      const services = [];
+      if (vd.data?.table) {
+        vd.data.table.forEach(t => {
+          if (t.services) services.push(...t.services);
+        });
+      }
+      if (services.length > 0) {
+        UIRenderer.renderExtractedTable(services);
+        console.log('✅ Tableau affiché:', services.length, 'services');
+      }
+    }
+  }, 50);
+});
+
+console.log('✅ Patch CSS onglets appliqué');
+</script>
   
 </body>
 </html>

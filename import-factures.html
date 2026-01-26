@@ -555,6 +555,108 @@
   }, 2000);
 })();
 </script>
+
+  <!-- PATCH v3.4 - Fix onglet Texte OCR -->
+<script>
+(function() {
+  console.log('🔧 Patch v3.4 - Fix Texte OCR');
+  
+  // Attendre chargement complet
+  setTimeout(function() {
+    
+    // Intercepter changement d'onglet
+    const tabs = document.querySelectorAll('.tab');
+    
+    tabs.forEach(function(tab) {
+      tab.addEventListener('click', function() {
+        const tabName = this.dataset.tab;
+        
+        console.log('📑 Onglet cliqué:', tabName);
+        
+        if (tabName === 'text') {
+          // Forcer affichage texte OCR
+          setTimeout(function() {
+            const vd = StateManager?.getViewerData();
+            
+            if (!vd || !vd.rawText) {
+              console.warn('⚠️ Pas de rawText disponible');
+              return;
+            }
+            
+            console.log('📄 Affichage texte:', vd.rawText.length, 'caractères');
+            
+            const textDiv = document.getElementById('textHtml');
+            if (!textDiv) {
+              console.error('❌ Élément textHtml introuvable');
+              return;
+            }
+            
+            // Affichage simple sans highlight
+            textDiv.style.whiteSpace = 'pre-wrap';
+            textDiv.style.wordBreak = 'break-word';
+            textDiv.textContent = vd.rawText;
+            
+            console.log('✅ Texte OCR affiché');
+            
+          }, 100);
+          
+        } else if (tabName === 'debug') {
+          // Forcer affichage debug JSON
+          setTimeout(function() {
+            const vd = StateManager?.getViewerData();
+            
+            if (!vd || !vd.data) {
+              console.warn('⚠️ Pas de data disponible');
+              return;
+            }
+            
+            console.log('🐛 Affichage debug JSON');
+            
+            const debugDiv = document.getElementById('debugJson');
+            if (!debugDiv) {
+              console.error('❌ Élément debugJson introuvable');
+              return;
+            }
+            
+            debugDiv.textContent = JSON.stringify(vd.data, null, 2);
+            
+            console.log('✅ Debug JSON affiché');
+            
+          }, 100);
+          
+        } else if (tabName === 'table') {
+          // Forcer affichage tableau
+          setTimeout(function() {
+            const vd = StateManager?.getViewerData();
+            
+            if (!vd || !vd.data || !vd.data.table) {
+              console.warn('⚠️ Pas de tableau disponible');
+              return;
+            }
+            
+            console.log('📊 Affichage tableau');
+            
+            const services = [];
+            vd.data.table.forEach(function(t) {
+              if (t.services) services.push(...t.services);
+            });
+            
+            console.log('📊 Services trouvés:', services.length);
+            
+            UIRenderer.renderExtractedTable(services);
+            
+            console.log('✅ Tableau affiché');
+            
+          }, 100);
+        }
+      });
+    });
+    
+    console.log('✅ Patch v3.4 appliqué - Onglets forcés');
+    
+  }, 2000);
+})();
+</script>
   
 </body>
 </html>

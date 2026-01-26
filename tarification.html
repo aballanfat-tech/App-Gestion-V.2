@@ -1465,7 +1465,47 @@ async function loadClientsFromCloud() {
     loadDefaultClients();
   }
 }
-
+// ============================================================================
+// BUGFIX V11.0.28: Fonction utilitaire conversion nom client → UUID
+// ============================================================================
+/**
+ * Convertit un nom de client en UUID Supabase
+ * @param {string} clientName - Nom du client ou UUID déjà
+ * @returns {Promise<string|null>} UUID du client ou null si non trouvé
+ */
+async function getClientUuid(clientName) {
+  if (!clientName) return null;
+  
+  // Si déjà un UUID (contient des tirets), retourner tel quel
+  if (clientName.includes('-')) {
+    return clientName;
+  }
+  
+  // Sinon, chercher dans Supabase
+  if (!isSupabaseAvailable) {
+    console.warn('⚠️ Supabase non disponible pour conversion UUID');
+    return null;
+  }
+  
+  try {
+    const { data: clientData, error } = await supabaseClient
+      .from('clients')
+      .select('id')
+      .eq('name', clientName)
+      .single();
+    
+    if (error || !clientData) {
+      console.warn(`⚠️ Client "${clientName}" non trouvé dans cloud`);
+      return null;
+    }
+    
+    console.log(`✅ UUID client "${clientName}": ${clientData.id}`);
+    return clientData.id;
+  } catch (e) {
+    console.error('❌ Erreur conversion UUID:', e);
+    return null;
+  }
+}
 function loadDefaultClients() {
   const defaultClients = ['CFMM', 'OVAL', 'Ginkgo Événement', 'Centre La Ruche'];
   const clientSelect = document.getElementById('clientSelect');

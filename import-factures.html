@@ -331,12 +331,12 @@
 </script>
 <script src="./scripts/main.js"></script>
 
-  <!-- DEBUG PATCH v2 -->
+<!-- PATCH FINAL v3 - Appel Direct -->
 <script>
 (function() {
-  console.log('🔧 Patch debug v2 activé');
+  console.log('🔧 Patch final v3');
   
-  setTimeout(function() {
+  setTimeout(async function() {
     const btn = document.getElementById('startBtn');
     
     if (!btn) {
@@ -344,31 +344,148 @@
       return;
     }
     
-    console.log('✅ Bouton trouvé, Disabled:', btn.disabled);
+    console.log('✅ Bouton trouvé');
     
-    // Ne pas remplacer le bouton, juste forcer enabled
+    // Forcer enabled
     btn.disabled = false;
-    console.log('✅ Bouton activé de force');
     
-    // Ajouter listener SUPPLÉMENTAIRE (pas de remplacement)
-    btn.addEventListener('click', function(e) {
-      console.log('🔥 CLICK DÉTECTÉ (patch) !');
+    // Remplacer complètement le bouton pour virer les listeners
+    const newBtn = btn.cloneNode(true);
+    newBtn.disabled = false;
+    btn.parentNode.replaceChild(newBtn, btn);
+    
+    // Attacher NOTRE propre handler
+    newBtn.addEventListener('click', async function(e) {
+      console.log('🔥 CLICK !');
+      e.preventDefault();
       
       const files = StateManager?.getFiles() || [];
-      console.log('📁 Fichiers:', files.length);
+      console.log('📁 Total fichiers:', files.length);
       
-      const ready = files.filter(f => f.status === "ready");
-      console.log('✅ Prêts:', ready.length);
+      const toProcess = files.filter(f => f.kind === "local" && f.status === "ready");
+      console.log('✅ À traiter:', toProcess.length, toProcess);
       
-      if (ready.length === 0) {
-        alert('⚠️ Aucun fichier prêt à traiter');
-        e.stopPropagation();
+      if (toProcess.length === 0) {
+        UIRenderer.showMessage("warn", "⚠️ Aucun fichier à traiter");
+        return;
       }
-    }, true); // true = capture phase
+      
+      // COPIER LE CODE DE handleStartProcessing directement
+      console.log('⏳ Début traitement...');
+      UIRenderer.showMessage("warn", "⏳ Traitement de " + toProcess.length + " fichier(s)...");
+      
+      try {
+        for(let i = 0; i < toProcess.length; i++) {
+          const fileEntry = toProcess[i];
+          const file = fileEntry.file;
+          const fileName = file.name;
+          
+          console.log(`📄 Traitement ${i+1}/${toProcess.length}: ${fileName}`);
+          
+          // 1. Update status: uploading
+          StateManager.updateFile(fileName, { status: "uploading" });
+          
+          // 2. Upload fichier
+          const timestamp = Date.now();
+          const sanitized = fileName.replace(/[^a-zA-Z0-9.\-_]/g, "_");
+          const storagePath = "2025/" + timestamp + "_" + sanitized;
+          
+          console.log('📤 Upload vers:', storagePath);
+          const uploadResult = await SupabaseClient.uploadFile(file, storagePath);
+          
+          if(uploadResult.error) {
+            console.error('❌ Erreur upload:', uploadResult.error);
+            throw new Error("Upload failed: " + uploadResult.error.message);
+          }
+          
+          console.log('✅ Upload OK');
+          
+          // 3. Créer facture DB
+          const { data: { user } } = await window.supabaseClient.auth.getUser();
+          
+          console.log('💾 Création facture DB...');
+          const createResult = await SupabaseClient.createFacture({
+            fichier_url: storagePath,
+            fichier_nom: fileName,
+            statut: "pending",
+            user_id: user?.id
+          });
+          
+          if(createResult.error) {
+            console.error('❌ Erreur création DB:', createResult.error);
+            throw new Error("Create failed: " + createResult.error.message);
+          }
+          
+          const factureId = createResult.data.id;
+          console.log('✅ Facture créée, ID:', factureId);
+          
+          // 4. Update status: extracting
+          StateManager.updateFile(fileName, { status: "extracting", factureId: factureId });
+          
+          // 5. Extraire texte + items XY
+          console.log('📄 Extraction PDF...');
+          const arrayBuffer = await file.arrayBuffer();
+          const arrayBufferCopy1 = arrayBuffer.slice(0);
+          const arrayBufferCopy2 = arrayBuffer.slice(0);
+          
+          const fullText = await PDFExtractor.extractPdfTextFromArrayBuffer(arrayBufferCopy1);
+          console.log('✅ Texte extrait:', fullText.substring(0, 100) + '...');
+          
+          const pagesXY = await PDFExtractor.extractPdfItemsXY(arrayBufferCopy2);
+          console.log('✅ Items XY extraits:', pagesXY.length, 'pages');
+          
+          // 6. Parser champs + table
+          console.log('🔍 Parsing champs...');
+          const fields = ParserModule.parseFieldsRobust(fullText);
+          console.log('✅ Champs parsés:', fields);
+          
+          const table = [];
+          for(let p = 0; p < pagesXY.length; p++) {
+            const pageItems = pagesXY[p].items;
+            const extracted = ParserModule.extractTableFromXY(pageItems, fullText);
+            
+            if(extracted.services.length > 0) {
+              table.push(extracted);
+            }
+          }
+          
+          console.log('✅ Tableau extrait:', table);
+          
+          // 7. Sauvegarder résultat
+          const updateResult = await SupabaseClient.updateFacture(factureId, {
+            statut: "extracted",
+            donnees_brutes: {
+              fullText: fullText,
+              fields: fields,
+              table: table
+            }
+          });
+          
+          if(updateResult.error) {
+            console.error('⚠️ Erreur update:', updateResult.error);
+          }
+          
+          StateManager.updateFile(fileName, { 
+            status: "done",
+            factureId: factureId,
+            extracted: { fields, table }
+          });
+          
+          console.log(`✅ Fichier ${i+1}/${toProcess.length} terminé`);
+        }
+        
+        UIRenderer.showTempMessage("ok", "✅ Traitement terminé !");
+        console.log('🎉 TOUS LES FICHIERS TRAITÉS !');
+        
+      } catch(err) {
+        console.error('❌ ERREUR TRAITEMENT:', err);
+        UIRenderer.showMessage("err", "❌ Erreur: " + err.message);
+      }
+    });
     
-    console.log('✅ Patch v2 appliqué');
+    console.log('✅ Patch v3 appliqué - Handler complet');
     
-  }, 1000);
+  }, 1500);
 })();
 </script>
 

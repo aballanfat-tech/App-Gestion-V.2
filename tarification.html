@@ -1107,8 +1107,23 @@ body.hide-facture-columns .col-no {
   </div>
 </div>
 
+  <!-- BUGFIX V11.0.16: Barre de recherche globale (tous tableaux) -->
+  <div class="card card-recherche card-fixed" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-left: 4px solid #1976d2;">
+    <h3 style="margin-top: 0; color: #1976d2;">🔍 Recherche globale</h3>
+    <div class="sort-controls">
+      <label style="flex: 1;">
+        <input type="text" id="searchInput" class="note-input search-input" 
+               placeholder="Rechercher dans tous les tableaux (destination, trajet, note...)..."
+               style="width: 100%; font-size: 1rem; padding: 12px;">
+      </label>
+    </div>
+    <p class="muted" style="margin: 8px 0 0 0; font-size: 0.85rem;">
+      La recherche filtre toutes les lignes de tous les tableaux (Destinations, Transferts et tableaux personnalisés).
+    </p>
+  </div>
+	
   <!-- Zone majorations V10.8 -->
-  <div class="card card-majorations" style="background: #fffef0; border-left: 4px solid #ffc107;">
+  <div class="card card-majorations card-fixed" style="background: #fffef0; border-left: 4px solid #ffc107;">
     <h3 style="margin-top: 0; color: #f57c00;">📝 Majorations et conditions spécifiques</h3>
     <p class="muted" style="margin-bottom: 10px;">
       Texte libre pour facturation (nuit, jours fériés, conditions particulières...). Sauvegardé par client/année.
@@ -1122,20 +1137,7 @@ body.hide-facture-columns .col-no {
 • Périodes scolaires : tarif spécial"></textarea>
   </div>
   
-  <!-- BUGFIX V11.0.16: Barre de recherche globale (tous tableaux) -->
-  <div class="card" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-left: 4px solid #1976d2;">
-    <h3 style="margin-top: 0; color: #1976d2;">🔍 Recherche globale</h3>
-    <div class="sort-controls">
-      <label style="flex: 1;">
-        <input type="text" id="searchInput" class="note-input search-input" 
-               placeholder="Rechercher dans tous les tableaux (destination, trajet, note...)..."
-               style="width: 100%; font-size: 1rem; padding: 12px;">
-      </label>
-    </div>
-    <p class="muted" style="margin: 8px 0 0 0; font-size: 0.85rem;">
-      La recherche filtre toutes les lignes de tous les tableaux (Destinations, Transferts et tableaux personnalisés).
-    </p>
-  </div>
+
 
   <div class="card">
     <h2 id="destinationsTitle">📍 Destinations</h2>

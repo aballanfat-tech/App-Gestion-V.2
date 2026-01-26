@@ -4796,19 +4796,16 @@ document.addEventListener("input", function(e){
   if(sel.value === "__new_year__"){
     const input = prompt("Nouvelle année (ex : 2027) :");
     if(!input){ 
-      await populateYearSelectForClient(getCurrentClient());  // ✅ await ajouté
       updateTitleSubtitle(); 
       return; 
     }
     const y = parseInt(input,10);
     if(!y || y<1900 || y>3000){
       alert("Année invalide.");
-      await populateYearSelectForClient(getCurrentClient());  // ✅ await ajouté
       updateTitleSubtitle();
       return;
     } else {
       // ✅ CORRECTION : await + créer année immédiatement
-      await populateYearSelectForClient(getCurrentClient());  // ✅ await ajouté
       
       // Créer l'option si elle n'existe pas
       const opt = Array.from(sel.options).find(o=>o.value===String(y));
@@ -4826,7 +4823,6 @@ document.addEventListener("input", function(e){
     }
 }
 // BUGFIX V11.0.26: Recharger le menu années pour le nouveau client
-await populateYearSelectForClient(sel.value);
 updateTitleSubtitle();
 await loadGrid();
   await computeEvolutions(); 
@@ -4881,6 +4877,10 @@ await loadGrid();
       sel.insertBefore(opt, sel.querySelector('option[value="__new_client__"]'));
       sel.value = opt.value;
     }
+    
+    // BUGFIX V11.0.26: Recharger menu années pour le nouveau client
+    await populateYearSelectForClient(sel.value);
+    
     updateTitleSubtitle();
     await loadGrid(); // BUGFIX: Charger depuis cloud
     await computeEvolutions(); markUnchangedPrices();

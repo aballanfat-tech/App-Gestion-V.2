@@ -331,7 +331,7 @@
 </script>
 <script src="./scripts/main.js"></script>
 
-<!-- PATCH FINAL v3 - Appel Direct -->
+<!-- PATCH FINAL v3 COMPLET -->
 <script>
 (function() {
   console.log('🔧 Patch final v3');
@@ -345,16 +345,12 @@
     }
     
     console.log('✅ Bouton trouvé');
-    
-    // Forcer enabled
     btn.disabled = false;
     
-    // Remplacer complètement le bouton pour virer les listeners
     const newBtn = btn.cloneNode(true);
     newBtn.disabled = false;
     btn.parentNode.replaceChild(newBtn, btn);
     
-    // Attacher NOTRE propre handler
     newBtn.addEventListener('click', async function(e) {
       console.log('🔥 CLICK !');
       e.preventDefault();
@@ -363,14 +359,13 @@
       console.log('📁 Total fichiers:', files.length);
       
       const toProcess = files.filter(f => f.kind === "local" && f.status === "ready");
-      console.log('✅ À traiter:', toProcess.length, toProcess);
+      console.log('✅ À traiter:', toProcess.length);
       
       if (toProcess.length === 0) {
         UIRenderer.showMessage("warn", "⚠️ Aucun fichier à traiter");
         return;
       }
       
-      // COPIER LE CODE DE handleStartProcessing directement
       console.log('⏳ Début traitement...');
       UIRenderer.showMessage("warn", "⏳ Traitement de " + toProcess.length + " fichier(s)...");
       
@@ -382,10 +377,8 @@
           
           console.log(`📄 Traitement ${i+1}/${toProcess.length}: ${fileName}`);
           
-          // 1. Update status: uploading
           StateManager.updateFile(fileName, { status: "uploading" });
           
-          // 2. Upload fichier
           const timestamp = Date.now();
           const sanitized = fileName.replace(/[^a-zA-Z0-9.\-_]/g, "_");
           const storagePath = "2025/" + timestamp + "_" + sanitized;
@@ -400,7 +393,6 @@
           
           console.log('✅ Upload OK');
           
-          // 3. Créer facture DB
           const { data: { user } } = await window.supabaseClient.auth.getUser();
           
           console.log('💾 Création facture DB...');
@@ -419,10 +411,8 @@
           const factureId = createResult.data.id;
           console.log('✅ Facture créée, ID:', factureId);
           
-          // 4. Update status: extracting
           StateManager.updateFile(fileName, { status: "extracting", factureId: factureId });
           
-          // 5. Extraire texte + items XY
           console.log('📄 Extraction PDF...');
           const arrayBuffer = await file.arrayBuffer();
           const arrayBufferCopy1 = arrayBuffer.slice(0);
@@ -434,7 +424,6 @@
           const pagesXY = await PDFExtractor.extractPdfItemsXY(arrayBufferCopy2);
           console.log('✅ Items XY extraits:', pagesXY.length, 'pages');
           
-          // 6. Parser champs + table
           console.log('🔍 Parsing champs...');
           const fields = ParserModule.parseFieldsRobust(fullText);
           console.log('✅ Champs parsés:', fields);
@@ -451,7 +440,6 @@
           
           console.log('✅ Tableau extrait:', table);
           
-          // 7. Sauvegarder résultat
           const updateResult = await SupabaseClient.updateFacture(factureId, {
             statut: "extracted",
             donnees_brutes: {
@@ -474,20 +462,14 @@
           console.log(`✅ Fichier ${i+1}/${toProcess.length} terminé`);
         }
         
-      UIRenderer.showTempMessage("ok", "✅ Traitement terminé !");
+        UIRenderer.showTempMessage("ok", "✅ Traitement terminé !");
         console.log('🎉 TOUS LES FICHIERS TRAITÉS !');
         
-        // BUGFIX: Rafraîchir l'UI pour afficher les fichiers traités
-        setTimeout(function() {
-          if (typeof renderApp === 'function') {
-            renderApp();
-          } else {
-            // Fallback: recharger la page
-            location.reload();
-          }
-        }, 500);
-        
-      } catch(err) {
+        // Recharger pour voir les résultats
+        setTimeout(() => {
+          console.log('🔄 Rechargement page...');
+          location.reload();
+        }, 1500);
         
       } catch(err) {
         console.error('❌ ERREUR TRAITEMENT:', err);
@@ -500,6 +482,5 @@
   }, 1500);
 })();
 </script>
-
 </body>
 </html>

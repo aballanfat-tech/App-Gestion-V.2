@@ -765,7 +765,365 @@ body.hide-facture-columns .col-no {
   /* Cards non déplaçables */
   cursor: default;
 }
+
+/* ===== SECTION DESTINATIONS IMPORTÉES ===== */
+.imported-section {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
+  border: 2px solid #ffc107;
+  border-radius: 12px;
+  padding: 20px;
+  margin: 20px 0 30px 0;
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.2);
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.imported-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 2px solid rgba(255, 193, 7, 0.3);
+}
+
+.imported-header h3 {
+  margin: 0;
+  color: #856404;
+  font-size: 18px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.imported-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.imported-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+/* ===== ITEMS IMPORTÉS ===== */
+.imported-item {
+  background: white;
+  border: 2px solid #ffc107;
+  border-radius: 8px;
+  padding: 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  cursor: move;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.imported-item:hover {
+  transform: translateX(4px);
+  box-shadow: 0 4px 12px rgba(255, 193, 7, 0.3);
+  border-color: #ff9800;
+}
+
+.imported-item.dragging {
+  opacity: 0.6;
+  transform: rotate(3deg) scale(0.95);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  cursor: grabbing;
+}
+
+.import-content {
+  flex: 1;
+}
+
+.import-desc {
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 6px;
+  font-size: 14px;
+}
+
+.import-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #666;
+}
+
+.import-prix {
+  font-weight: 700;
+  color: #2563eb;
+}
+
+.import-qty {
+  background: #e0e7ff;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.import-tva {
+  color: #059669;
+}
+
+.import-facture {
+  color: #7c3aed;
+  font-weight: 500;
+}
+
+.import-suggestion {
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: #d1fae5;
+  border-left: 3px solid #10b981;
+  border-radius: 4px;
+  font-size: 12px;
+  color: #065f46;
+}
+
+.import-actions {
+  display: flex;
+  gap: 6px;
+  margin-left: 12px;
+}
+
+.btn-icon {
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 4px;
+  opacity: 0.6;
+  transition: opacity 0.2s;
+}
+
+.btn-icon:hover {
+  opacity: 1;
+}
+
+/* ===== CELLULES GRILLE DROPPABLES ===== */
+.grid-cell.empty {
+  background: #f9fafb;
+}
+
+.grid-cell.has-value {
+  background: white;
+}
+
+.grid-cell.drag-over {
+  background: #dbeafe !important;
+  border: 2px dashed #3b82f6 !important;
+  box-shadow: inset 0 0 8px rgba(59, 130, 246, 0.3);
+  transform: scale(1.02);
+}
+
+.grid-cell.drag-over .dropzone-hint {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.cell-dropzone {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 40px;
+  color: #d1d5db;
+  font-size: 12px;
+  transition: all 0.2s;
+}
+
+.grid-cell:hover .cell-dropzone {
+  color: #6b7280;
+  background: #f3f4f6;
+}
+
+.dropzone-hint {
+  pointer-events: none;
+}
+
+/* Notification toast */
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 16px 24px;
+  background: #48bb78;
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 10000;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.toast-notification.error {
+  background: #f56565;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* ===== RESPONSIVE ===== */
+@media (max-width: 768px) {
+  .imported-header {
+    flex-direction: column;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .imported-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .imported-item {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .import-actions {
+    margin-left: 0;
+    justify-content: flex-end;
+  }
+}
+</style>
+
+<!-- HTML À AJOUTER (fonction JavaScript qui retourne le HTML) -->
+<script>
+/**
+ * Générer HTML section destinations importées
+ * Appeler cette fonction au chargement de la grille
+ */
+function renderImportedSection(gridData) {
+  const imported = gridData.destinations_importees || [];
   
+  if (imported.length === 0) {
+    return ''; // Pas de section si vide
+  }
+
+  let html = `
+    <div class="imported-section" id="importedSection">
+      <div class="imported-header">
+        <h3>📥 Destinations Importées (${imported.length})</h3>
+        <div class="imported-actions">
+          <button class="btn" onclick="classifyAllAuto()" style="background: #10b981; color: white; border-color: #10b981;">
+            ✨ Tout classer automatiquement
+          </button>
+          <button class="btn" onclick="clearAllImported()" style="background: #ef4444; color: white; border-color: #ef4444;">
+            🗑️ Tout supprimer
+          </button>
+        </div>
+      </div>
+
+      <div class="imported-list" id="importedList">
+  `;
+
+  imported.forEach(item => {
+    html += renderImportedItem(item);
+  });
+
+  html += `
+      </div>
+    </div>
+  `;
+
+  return html;
+}
+
+/**
+ * Générer HTML pour un item importé
+ */
+function renderImportedItem(item) {
+  const desc = escapeHtml(item.description || 'Service sans description');
+  const prix = parseFloat(item.prix_ht || 0).toFixed(2);
+  const qty = item.quantite || 1;
+  const tva = item.tva || 10;
+  const facture = escapeHtml(item.facture || 'N/A');
+
+  let html = `
+    <div 
+      class="imported-item" 
+      draggable="true"
+      data-import-id="${item.id}"
+      ondragstart="handleImportDragStart(event)"
+      ondragend="handleImportDragEnd(event)"
+    >
+      <div class="import-content">
+        <div class="import-desc">${desc}</div>
+        <div class="import-meta">
+          <span class="import-prix">${prix} €</span>
+  `;
+
+  if (qty > 1) {
+    html += `<span class="import-qty">x${qty}</span>`;
+  }
+
+  html += `
+          <span class="import-tva">TVA ${tva}%</span>
+          <span class="import-facture">📄 ${facture}</span>
+        </div>
+  `;
+
+  // Afficher suggestion si présente
+  if (item.suggestions && item.suggestions.destination) {
+    const conf = item.suggestions.confidence || 0;
+    html += `
+        <div class="import-suggestion">
+          💡 Suggestion: ${escapeHtml(item.suggestions.destination)} > 
+          ${escapeHtml(item.suggestions.vehicule)} 
+          (${conf}%)
+        </div>
+    `;
+  }
+
+  html += `
+      </div>
+      <div class="import-actions">
+        <button class="btn-icon" onclick="editImport('${item.id}')" title="Éditer">
+          📝
+        </button>
+        <button class="btn-icon" onclick="deleteImport('${item.id}')" title="Supprimer">
+          🗑️
+        </button>
+      </div>
+    </div>
+  `;
+
+  return html;
+}
+
+/**
+ * Helper escape HTML
+ */
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+	
 </style>
 
 

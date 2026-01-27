@@ -422,6 +422,65 @@
         })
         .eq('id', factureData.id);
 
+      // NOUVEAU : Créer entrée dans queue
+      console.log('📥 Création entrée queue...');
+      
+      const clientDetecte = fields.client_nom || fields.destinataire || 'Client inconnu';
+      const anneeDetectee = fields.date_facture ? 
+        parseInt(fields.date_facture.split('-')[0]) : 
+        new Date().getFullYear();
+
+      // Compter services
+      let servicesCount = 0;
+      if (table && Array.isArray(table)) {
+        table.forEach(page => {
+          if (page.services) servicesCount += page.services.length;
+        });
+      }
+
+      const { data: queueData, error: queueError } = await supabaseClient
+        .from('factures_export_queue')
+        .insert({
+          facture_id: factureData.id,
+          client_detecte: clientDetecte,
+          annee: anneeDetectee,
+          status: 'pending',
+          services_count: servicesCount
+        })
+        .select()
+        .single();
+
+      if (queueError) {
+        console.warn('⚠️ Erreur création queue:', queueError);
+      } else {
+        console.log('✅ Queue créée:', queueData.id);
+
+        // Créer services_mapping
+        if (servicesCount > 0 && table) {
+          let serviceIndex = 0;
+          for (const page of table) {
+            if (page.services) {
+              for (const service of page.services) {
+                serviceIndex++;
+                await supabaseClient
+                  .from('services_mapping')
+                  .insert({
+                    queue_id: queueData.id,
+                    service_index: serviceIndex,
+                    description_orig: service.desc || service.description || '',
+                    prix_ht: parseFloat(service.total || service.prix || 0),
+                    quantite: parseInt(service.qty || service.quantite || 1),
+                    tva: parseFloat(service.tva || 10),
+                    status: 'pending',
+                    needs_validation: true
+                  });
+              }
+            }
+          }
+          console.log(`✅ ${serviceIndex} services mappés`);
+        }
+      }
+
       updateFileItem(fileItem.id, 'success', 100);
 
       console.log(`✅ ${fileItem.name} extrait`);

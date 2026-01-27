@@ -392,6 +392,32 @@
 
       // Parsing
       const fields = ParserModule.parseFieldsRobust(fullText);
+      
+      // AJOUT : Extraction date_service depuis texte
+      // Chercher patterns comme "Décembre 2025", "Service du mois de janvier 2024", etc.
+      if (!fields.fields.date_service) {
+        const servicePatterns = [
+          /(?:prestation|service|transport).*?(?:du|de|le)\s+(\d{1,2}[\/\-.]\d{1,2}[\/\-.]\d{2,4})/gi,
+          /(?:mois\s+de|période)\s+(\w+\s+\d{4})/gi,
+          /(\w+\s+\d{4})\s*(?:L-M-J-V|Lundi|Mardi|Mercredi)/gi, // Ex: "Décembre 2025 L-M-J-V"
+          /(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})/gi
+        ];
+        
+        let serviceDate = null;
+        for (const pattern of servicePatterns) {
+          const match = fullText.match(pattern);
+          if (match) {
+            serviceDate = match[0];
+            // Extraire juste l'année si c'est un mois + année
+            const yearMatch = serviceDate.match(/(\d{4})/);
+            if (yearMatch) {
+              fields.fields.date_service = yearMatch[1]; // Stocker l'année
+              console.log(`📅 Date service détectée: "${serviceDate}" → année ${yearMatch[1]}`);
+            }
+            break;
+          }
+        }
+      }
 
       const arrayBuffer2 = await fileItem.file.arrayBuffer();
       const pagesXY = await PDFExtractor.extractPdfItemsXY(arrayBuffer2);
@@ -425,32 +451,76 @@
       
       const clientDetecte = fields.client_nom || fields.destinataire || 'Client inconnu';
       
-      // Détection année intelligente
-      let anneeDetectee = new Date().getFullYear();
+      // ===== DÉTECTION ANNÉE - LOGIQUE HIÉRARCHIQUE =====
+      let anneeDetectee = null;
+      let sourceAnnee = '';
       
-      // 1. Priorité : date_facture si présente
-      if (fields.date_facture) {
-        const yearMatch = fields.date_facture.match(/(\d{4})/);
+      // 1. PRIORITÉ ABSOLUE : Date de service dans les champs parsés
+      if (fields.date_service) {
+        const yearMatch = fields.date_service.match(/(\d{4})/);
         if (yearMatch) {
           anneeDetectee = parseInt(yearMatch[1]);
-          console.log(`📅 Année depuis date_facture: ${anneeDetectee}`);
+          sourceAnnee = 'date_service';
+          console.log(`📅 Année depuis DATE SERVICE: ${fields.date_service} → ${anneeDetectee}`);
         }
       }
       
-      // 2. Sinon : numéro facture format FACT-YYMM-XXX
-      if (fields.numero_facture && !fields.date_facture) {
-        // Exemples: FACT-2412-420 → 24 = 2024
-        //           FACT-2501-123 → 25 = 2025
+      // 2. SI PAS DE DATE SERVICE : Chercher année dans le texte complet
+      if (!anneeDetectee && fullText) {
+        // Patterns courants dans factures
+        const patterns = [
+          /(?:année|annee|exercice|période|periode)\s*:?\s*(\d{4})/gi,
+          /(?:janvier|février|mars|avril|mai|juin|juillet|août|septembre|octobre|novembre|décembre)\s+(\d{4})/gi,
+          /(?:prestation|service|transport).*?(\d{4})/gi,
+          /\b(20\d{2})\b/g  // Année format 20XX isolée
+        ];
+        
+        let foundYears = [];
+        patterns.forEach(pattern => {
+          let match;
+          const regex = new RegExp(pattern);
+          while ((match = regex.exec(fullText)) !== null) {
+            const year = parseInt(match[1]);
+            if (year >= 2020 && year <= 2030) {  // Années plausibles
+              foundYears.push(year);
+            }
+          }
+        });
+        
+        if (foundYears.length > 0) {
+          // Prendre l'année la plus fréquente
+          const yearCounts = {};
+          foundYears.forEach(y => yearCounts[y] = (yearCounts[y] || 0) + 1);
+          const mostFrequent = Object.keys(yearCounts).sort((a, b) => 
+            yearCounts[b] - yearCounts[a]
+          )[0];
+          
+          anneeDetectee = parseInt(mostFrequent);
+          sourceAnnee = 'texte_facture';
+          console.log(`📅 Année depuis TEXTE FACTURE: ${anneeDetectee} (trouvée ${yearCounts[mostFrequent]}x)`);
+        }
+      }
+      
+      // 3. FALLBACK : Numéro de facture format FACT-YYMM-XXX
+      if (!anneeDetectee && fields.numero_facture) {
         const factMatch = fields.numero_facture.match(/FACT-(\d{2})(\d{2})/i);
         if (factMatch) {
           const yy = parseInt(factMatch[1]);
           // Si yy > 50, supposer 19XX, sinon 20XX
           anneeDetectee = yy > 50 ? 1900 + yy : 2000 + yy;
-          console.log(`📅 Année depuis numéro facture: ${fields.numero_facture} → ${yy} → ${anneeDetectee}`);
+          sourceAnnee = 'numero_facture';
+          console.log(`📅 Année depuis NUMÉRO FACTURE: ${fields.numero_facture} → YY=${yy} → ${anneeDetectee}`);
         }
       }
       
-      console.log(`✅ Année finale détectée: ${anneeDetectee}`);
+      // 4. DERNIER RECOURS : Année courante
+      if (!anneeDetectee) {
+        anneeDetectee = new Date().getFullYear();
+        sourceAnnee = 'par_defaut';
+        console.log(`⚠️ Année PAR DÉFAUT: ${anneeDetectee}`);
+      }
+      
+      console.log(`✅ Année finale: ${anneeDetectee} (source: ${sourceAnnee})`);
 
       // Compter services
       let servicesCount = 0;

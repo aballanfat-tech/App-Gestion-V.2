@@ -674,16 +674,150 @@
 
   <!-- MODAL VISUALISATION FACTURE -->
   <div class="modal-overlay" id="modalOverlay">
-    <div class="modal">
-      <div class="modal-header">
-        <button class="modal-close" onclick="closeModal()">×</button>
-        <h3 class="modal-title" id="modalTitle">Facture</h3>
+    <div class="modal-facture" id="modalFacture" style="
+      background: white;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 1000px;
+      max-height: 90vh;
+      display: none;
+      flex-direction: column;
+      overflow: hidden;
+    ">
+      <!-- Header -->
+      <div style="
+        padding: 20px 24px;
+        border-bottom: 1px solid var(--gray-200);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      ">
+        <h3 id="modalTitle" style="margin: 0; font-size: 20px; font-weight: 700;">Facture</h3>
+        <button onclick="ModalFacture.close()" style="
+          background: none;
+          border: none;
+          font-size: 28px;
+          cursor: pointer;
+          color: var(--gray-600);
+          line-height: 1;
+        ">×</button>
       </div>
-      <div class="modal-body" id="modalBody">
-        <!-- Contenu dynamique -->
+
+      <!-- Onglets -->
+      <div style="
+        display: flex;
+        gap: 8px;
+        padding: 0 24px;
+        border-bottom: 1px solid var(--gray-200);
+        background: var(--gray-50);
+      ">
+        <button class="tab-btn active" data-tab="edit" style="
+          padding: 12px 20px;
+          background: none;
+          border: none;
+          border-bottom: 3px solid transparent;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--gray-600);
+          transition: all 0.2s;
+        ">
+          📝 Édition
+        </button>
+        <button class="tab-btn" data-tab="table" style="
+          padding: 12px 20px;
+          background: none;
+          border: none;
+          border-bottom: 3px solid transparent;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--gray-600);
+          transition: all 0.2s;
+        ">
+          📊 Tableau
+        </button>
+        <button class="tab-btn" data-tab="text" style="
+          padding: 12px 20px;
+          background: none;
+          border: none;
+          border-bottom: 3px solid transparent;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--gray-600);
+          transition: all 0.2s;
+        ">
+          📄 Texte OCR
+        </button>
+        <button class="tab-btn" data-tab="debug" style="
+          padding: 12px 20px;
+          background: none;
+          border: none;
+          border-bottom: 3px solid transparent;
+          cursor: pointer;
+          font-size: 14px;
+          font-weight: 500;
+          color: var(--gray-600);
+          transition: all 0.2s;
+        ">
+          🐛 Debug
+        </button>
+      </div>
+
+      <!-- Loading -->
+      <div id="modalLoading" style="
+        padding: 60px;
+        text-align: center;
+        color: var(--gray-600);
+      ">
+        <div class="spinner" style="margin: 0 auto 16px;"></div>
+        <div>Chargement...</div>
+      </div>
+
+      <!-- Contenu onglets -->
+      <div style="flex: 1; overflow-y: auto;">
+        <div id="tab-edit" class="tab-content active"></div>
+        <div id="tab-table" class="tab-content" style="display: none;"></div>
+        <div id="tab-text" class="tab-content" style="display: none;"></div>
+        <div id="tab-debug" class="tab-content" style="display: none;"></div>
       </div>
     </div>
   </div>
+
+  <style>
+    .tab-btn.active {
+      color: var(--primary) !important;
+      border-bottom-color: var(--primary) !important;
+      background: white !important;
+    }
+
+    .tab-btn:hover {
+      color: var(--gray-900);
+    }
+
+    .tab-content {
+      display: none;
+    }
+
+    .tab-content.active {
+      display: block;
+    }
+
+    .field {
+      width: 100%;
+      padding: 10px 12px;
+      border: 1px solid var(--gray-300);
+      border-radius: 6px;
+      font-size: 14px;
+      font-family: inherit;
+    }
+
+    .field:focus {
+      outline: none;
+      border-color: var(--primary);
+    }
+  </style>
 
   <!-- Configuration -->
   <script src="./config.js"></script>
@@ -693,6 +827,9 @@
   <script src="./scripts/supabase-client.js"></script>
   <script src="./scripts/pdf-extractor.js"></script>
   <script src="./scripts/parser.js"></script>
+  
+  <!-- Modal facture -->
+  <script src="./modal-facture.js"></script>
   
   <!-- Main unifié -->
   <script src="./gestion-factures-main.js"></script>

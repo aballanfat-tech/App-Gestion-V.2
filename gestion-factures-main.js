@@ -448,8 +448,8 @@
   // ===== ACTIONS FACTURES =====
   window.viewFacture = async function(factureId) {
     console.log('👁️ Voir facture:', factureId);
-    // Réutiliser modale existante import-factures
-    window.location.href = `import-factures.html?facture=${factureId}`;
+    // Ouvrir modale intégrée au lieu de rediriger
+    ModalFacture.open(factureId);
   };
 
   window.validateQueue = async function(queueId) {
@@ -485,10 +485,6 @@
     selectedFiles = selectedFiles.filter(f => f.id !== fileId);
     renderFilesList();
     updateExtractButton();
-  };
-
-  window.closeModal = function() {
-    document.getElementById('modalOverlay').classList.remove('open');
   };
 
   // ===== HELPERS =====

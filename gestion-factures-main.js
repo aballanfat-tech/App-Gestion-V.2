@@ -275,10 +275,8 @@
       return true;
     });
 
-    if (validFiles.length + selectedFiles.length > window.APP_CONFIG.MAX_FILES) {
-      showMessage('error', `Maximum ${window.APP_CONFIG.MAX_FILES} fichiers`);
-      return;
-    }
+    // LIMITE SUPPRIMÉE - Upload illimité
+    // Traitement séquentiel, pas de problème performance
 
     selectedFiles = selectedFiles.concat(validFiles.map(file => ({
       file: file,
@@ -426,9 +424,33 @@
       console.log('📥 Création entrée queue...');
       
       const clientDetecte = fields.client_nom || fields.destinataire || 'Client inconnu';
-      const anneeDetectee = fields.date_facture ? 
-        parseInt(fields.date_facture.split('-')[0]) : 
-        new Date().getFullYear();
+      
+      // Détection année intelligente
+      let anneeDetectee = new Date().getFullYear();
+      
+      // 1. Priorité : date_facture si présente
+      if (fields.date_facture) {
+        const yearMatch = fields.date_facture.match(/(\d{4})/);
+        if (yearMatch) {
+          anneeDetectee = parseInt(yearMatch[1]);
+          console.log(`📅 Année depuis date_facture: ${anneeDetectee}`);
+        }
+      }
+      
+      // 2. Sinon : numéro facture format FACT-YYMM-XXX
+      if (fields.numero_facture && !fields.date_facture) {
+        // Exemples: FACT-2412-420 → 24 = 2024
+        //           FACT-2501-123 → 25 = 2025
+        const factMatch = fields.numero_facture.match(/FACT-(\d{2})(\d{2})/i);
+        if (factMatch) {
+          const yy = parseInt(factMatch[1]);
+          // Si yy > 50, supposer 19XX, sinon 20XX
+          anneeDetectee = yy > 50 ? 1900 + yy : 2000 + yy;
+          console.log(`📅 Année depuis numéro facture: ${fields.numero_facture} → ${yy} → ${anneeDetectee}`);
+        }
+      }
+      
+      console.log(`✅ Année finale détectée: ${anneeDetectee}`);
 
       // Compter services
       let servicesCount = 0;

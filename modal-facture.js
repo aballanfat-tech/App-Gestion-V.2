@@ -582,43 +582,6 @@
 
   // Export global
   window.ModalFacture = {
-    // Events
-    on,
-    emit,
-    
-    // Files
-    addFiles,
-    removeFile,
-    updateFileStatus,
-    clearFiles,
-    getFiles,
-    
-    // Queue
-    setQueue,
-    addToQueue,
-    updateQueueItem,
-    removeFromQueue,
-    getQueue,
-    getFilteredQueue,
-    
-    // Filters
-    setFilter,
-    getFilters,
-    
-    // User
-    setUser,
-    getUser,
-    
-    // UI
-    setLoading,
-    isLoading,
-    
-    // Stats
-    getStats
-  };
-
-  // Export global
-  window.ModalFacture = {
     open: openFactureModal,
     close: closeFactureModal,
     validateAndExport: validateAndExport,

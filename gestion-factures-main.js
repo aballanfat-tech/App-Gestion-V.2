@@ -24,7 +24,7 @@
         throw new Error('Configuration Supabase manquante');
       }
 
-         supabaseClient = supabase.createClient(
+      supabaseClient = supabase.createClient(
         window.SUPABASE_CONFIG.url,
         window.SUPABASE_CONFIG.anonKey,
         window.SUPABASE_CONFIG.options
@@ -34,7 +34,7 @@
       window.supabaseClient = supabaseClient;
 
       console.log('✅ Supabase initialisé');
-      
+
       // 2. Vérifier session
       const { data: { user }, error } = await supabaseClient.auth.getUser();
       
@@ -199,14 +199,8 @@
 
         <div class="card-actions">
           <button class="btn small" onclick="viewFacture('${item.facture_id}')">
-            👁️ Voir
+            👁️ Voir & Exporter
           </button>
-
-          ${item.status === 'pending' ? `
-            <button class="btn success small" onclick="validateQueue(${item.id})">
-              ✅ Valider export
-            </button>
-          ` : ''}
 
           ${item.status === 'exported' ? `
             <button class="btn small" onclick="openGrid('${item.client_id}', ${item.annee})">
@@ -451,13 +445,8 @@
   // ===== ACTIONS FACTURES =====
   window.viewFacture = async function(factureId) {
     console.log('👁️ Voir facture:', factureId);
-    // Ouvrir modale intégrée au lieu de rediriger
+    // Ouvrir modale intégrée
     ModalFacture.open(factureId);
-  };
-
-  window.validateQueue = async function(queueId) {
-    console.log('✅ Valider queue:', queueId);
-    showMessage('info', 'Modal validation export (Sprint 3 - à venir)');
   };
 
   window.openGrid = function(clientId, year) {

@@ -158,8 +158,18 @@
           ${renderServicesTable(donneesBrutes.table)}
         </div>
 
-        <div style="margin-top: 20px; text-align: right;">
-          <button class="btn" onclick="ModalFacture.close()">Fermer</button>
+        <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+          <button class="btn" onclick="ModalFacture.close()">
+            ❌ Annuler
+          </button>
+          <button class="btn success" onclick="ModalFacture.validateAndExport()" style="
+            background: var(--success);
+            color: white;
+            border-color: var(--success);
+            font-weight: 600;
+          ">
+            ✅ Valider & Exporter vers Grille
+          </button>
         </div>
       </div>
     `;
@@ -361,10 +371,257 @@
     console.log('✅ ModalFacture initialisé');
   }
 
+  // ===== VALIDATION & EXPORT =====
+  async function validateAndExport() {
+    console.log('✅ Validation & Export facture:', currentFactureId);
+
+    try {
+      // 1. Récupérer queue_id depuis facture_id
+      const { data: queue, error: queueError } = await window.supabaseClient
+        .from('factures_export_queue')
+        .select('*')
+        .eq('facture_id', currentFactureId)
+        .single();
+
+      if (queueError || !queue) {
+        alert('❌ Cette facture n\'est pas dans la file d\'export');
+        return;
+      }
+
+      // 2. Récupérer services validés
+      const { data: services, error: servicesError } = await window.supabaseClient
+        .from('services_mapping')
+        .select('*')
+        .eq('queue_id', queue.id);
+
+      if (servicesError) throw servicesError;
+
+      if (!services || services.length === 0) {
+        alert('❌ Aucun service trouvé pour cette facture');
+        return;
+      }
+
+      console.log(`📋 ${services.length} services à exporter`);
+
+      // 3. Ouvrir modal sélection client/année
+      const selection = await showClientYearSelector(queue.client_detecte, queue.annee);
+      
+      if (!selection) {
+        console.log('❌ Export annulé par utilisateur');
+        return;
+      }
+
+      const { clientId, year } = selection;
+
+      // 4. Charger grille
+      const { data: grille, error: grilleError } = await window.supabaseClient
+        .from('grilles')
+        .select('*')
+        .eq('client_id', clientId)
+        .eq('year', year)
+        .single();
+
+      if (grilleError || !grille) {
+        alert('❌ Grille introuvable pour ce client/année');
+        return;
+      }
+
+      // 5. Préparer données
+      const gridData = grille.data || { destinations: {}, destinations_importees: [] };
+      gridData.destinations_importees = gridData.destinations_importees || [];
+
+      // 6. Ajouter services dans destinations_importees
+      services.forEach(service => {
+        gridData.destinations_importees.push({
+          id: `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+          description: service.description_orig,
+          prix_ht: parseFloat(service.prix_ht) || 0,
+          quantite: service.quantite || 1,
+          tva: service.tva || 10,
+          facture: currentData.fichier_nom,
+          facture_id: currentFactureId,
+          date_import: new Date().toISOString(),
+          suggestions: {
+            destination: service.destination_detectee || service.destination_validee,
+            vehicule: service.vehicule_detecte || service.vehicule_valide,
+            confidence: service.confidence_score || 0
+          }
+        });
+      });
+
+      console.log('💾 Sauvegarde grille avec imports...');
+
+      // 7. Sauvegarder grille
+      const { error: updateError } = await window.supabaseClient
+        .from('grilles')
+        .update({ 
+          data: gridData,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', grille.id);
+
+      if (updateError) throw updateError;
+
+      // 8. Marquer queue comme exportée
+      await window.supabaseClient
+        .from('factures_export_queue')
+        .update({ 
+          status: 'exported',
+          exported_at: new Date().toISOString()
+        })
+        .eq('id', queue.id);
+
+      console.log('✅ Export terminé !');
+
+      // 9. Fermer modal
+      closeFactureModal();
+
+      // 10. Confirmation + proposition ouvrir grille
+      const message = `✅ ${services.length} services exportés vers la grille !\n\nOuvrir la grille tarifaire maintenant ?`;
+      
+      if (confirm(message)) {
+        window.location.href = `tarification.html?client=${clientId}&year=${year}`;
+      } else {
+        // Recharger liste pour montrer status "exportée"
+        if (window.loadQueue) window.loadQueue();
+      }
+
+    } catch (err) {
+      console.error('❌ Erreur export:', err);
+      alert('Erreur lors de l\'export : ' + err.message);
+    }
+  }
+
+  // Modal sélection client/année
+  async function showClientYearSelector(detectedClient, detectedYear) {
+    return new Promise((resolve) => {
+      // Créer overlay modal
+      const overlay = document.createElement('div');
+      overlay.style.cssText = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 10000;
+      `;
+
+      const modal = document.createElement('div');
+      modal.style.cssText = `
+        background: white;
+        padding: 24px;
+        border-radius: 12px;
+        width: 400px;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+      `;
+
+      modal.innerHTML = `
+        <h3 style="margin: 0 0 16px 0;">📤 Exporter vers Grille Tarifaire</h3>
+        
+        <div style="margin-bottom: 16px;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 600;">Client</label>
+          <select id="selectClient" class="field" style="width: 100%;">
+            <option value="">Chargement...</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <label style="display: block; margin-bottom: 4px; font-weight: 600;">Année</label>
+          <select id="selectYear" class="field" style="width: 100%;">
+            <option value="2024">2024</option>
+            <option value="2025" ${detectedYear === 2025 ? 'selected' : ''}>2025</option>
+            <option value="2026">2026</option>
+          </select>
+        </div>
+
+        <div style="display: flex; gap: 12px; justify-content: flex-end;">
+          <button class="btn" id="btnCancel">Annuler</button>
+          <button class="btn success" id="btnConfirm">✅ Confirmer</button>
+        </div>
+      `;
+
+      overlay.appendChild(modal);
+      document.body.appendChild(overlay);
+
+      // Charger clients
+      window.supabaseClient
+        .from('clients')
+        .select('id, name')
+        .order('name')
+        .then(({ data: clients }) => {
+          const select = document.getElementById('selectClient');
+          select.innerHTML = clients.map(c => 
+            `<option value="${c.id}" ${c.name === detectedClient ? 'selected' : ''}>${c.name}</option>`
+          ).join('');
+        });
+
+      // Handlers
+      document.getElementById('btnCancel').onclick = () => {
+        overlay.remove();
+        resolve(null);
+      };
+
+      document.getElementById('btnConfirm').onclick = () => {
+        const clientId = document.getElementById('selectClient').value;
+        const year = parseInt(document.getElementById('selectYear').value);
+
+        if (!clientId) {
+          alert('Veuillez sélectionner un client');
+          return;
+        }
+
+        overlay.remove();
+        resolve({ clientId, year });
+      };
+    });
+  }
+
+  // Export global
+  window.ModalFacture = {
+    // Events
+    on,
+    emit,
+    
+    // Files
+    addFiles,
+    removeFile,
+    updateFileStatus,
+    clearFiles,
+    getFiles,
+    
+    // Queue
+    setQueue,
+    addToQueue,
+    updateQueueItem,
+    removeFromQueue,
+    getQueue,
+    getFilteredQueue,
+    
+    // Filters
+    setFilter,
+    getFilters,
+    
+    // User
+    setUser,
+    getUser,
+    
+    // UI
+    setLoading,
+    isLoading,
+    
+    // Stats
+    getStats
+  };
+
   // Export global
   window.ModalFacture = {
     open: openFactureModal,
     close: closeFactureModal,
+    validateAndExport: validateAndExport,
     init: init
   };
 

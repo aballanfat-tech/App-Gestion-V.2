@@ -1,0 +1,602 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Validation Exports - Grille Tarifaire</title>
+  
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f5f7fa;
+      color: #2d3748;
+      line-height: 1.6;
+    }
+    
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    
+    header {
+      background: white;
+      border-bottom: 1px solid #e2e8f0;
+      padding: 20px;
+      margin-bottom: 30px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    header h1 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 8px;
+    }
+    
+    header .subtitle {
+      color: #718096;
+      font-size: 14px;
+    }
+    
+    .toolbar {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      margin-bottom: 20px;
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .btn {
+      padding: 10px 16px;
+      border: 1px solid #cbd5e0;
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .btn:hover {
+      background: #f7fafc;
+      border-color: #a0aec0;
+    }
+    
+    .btn.primary {
+      background: #4299e1;
+      color: white;
+      border-color: #4299e1;
+    }
+    
+    .btn.primary:hover {
+      background: #3182ce;
+    }
+    
+    .btn.success {
+      background: #48bb78;
+      color: white;
+      border-color: #48bb78;
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .filters {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex: 1;
+    }
+    
+    .field {
+      padding: 8px 12px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 14px;
+      min-width: 150px;
+    }
+    
+    .search {
+      flex: 1;
+      max-width: 300px;
+      padding: 8px 12px;
+      border: 1px solid #cbd5e0;
+      border-radius: 6px;
+      font-size: 14px;
+    }
+    
+    .queue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .queue-card {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      border-left: 4px solid #cbd5e0;
+      transition: all 0.2s;
+    }
+    
+    .queue-card:hover {
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .queue-card.pending {
+      border-left-color: #ed8936;
+    }
+    
+    .queue-card.validated {
+      border-left-color: #48bb78;
+    }
+    
+    .queue-card.exported {
+      border-left-color: #4299e1;
+    }
+    
+    .queue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 16px;
+    }
+    
+    .queue-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: #1a202c;
+      margin-bottom: 4px;
+    }
+    
+    .queue-meta {
+      display: flex;
+      gap: 16px;
+      color: #718096;
+      font-size: 14px;
+      flex-wrap: wrap;
+    }
+    
+    .queue-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .queue-status {
+      background: #edf2f7;
+      padding: 12px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      font-size: 14px;
+    }
+    
+    .status-badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .status-badge.pending {
+      background: #feebc8;
+      color: #7c2d12;
+    }
+    
+    .status-badge.validated {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+    
+    .status-badge.exported {
+      background: #bee3f8;
+      color: #1a365d;
+    }
+    
+    .queue-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 16px;
+    }
+    
+    .empty-state {
+      background: white;
+      border-radius: 8px;
+      padding: 60px 20px;
+      text-align: center;
+      color: #718096;
+    }
+    
+    .empty-state-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+    
+    .empty-state h3 {
+      font-size: 18px;
+      color: #2d3748;
+      margin-bottom: 8px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #718096;
+    }
+    
+    .spinner {
+      border: 3px solid #e2e8f0;
+      border-top-color: #4299e1;
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    
+    .stat-card {
+      background: white;
+      padding: 16px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #1a202c;
+      margin-bottom: 4px;
+    }
+    
+    .stat-label {
+      color: #718096;
+      font-size: 14px;
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <div class="container">
+      <h1>📊 Validation Exports - Grille Tarifaire</h1>
+      <div class="subtitle">
+        Gérer les exports de factures vers les grilles tarifaires clients
+      </div>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Statistiques -->
+    <div class="stats" id="stats">
+      <div class="stat-card">
+        <div class="stat-value" id="statTotal">0</div>
+        <div class="stat-label">Total factures</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statPending">0</div>
+        <div class="stat-label">En attente</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statValidated">0</div>
+        <div class="stat-label">Validées</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="statExported">0</div>
+        <div class="stat-label">Exportées</div>
+      </div>
+    </div>
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <button class="btn primary" id="btnImportFactures">
+        📤 Importer Factures
+      </button>
+      <button class="btn" id="btnRefresh">
+        🔄 Actualiser
+      </button>
+      
+      <div style="flex: 1"></div>
+      
+      <div class="filters">
+        <select class="field" id="filterStatus">
+          <option value="all">Tous statuts</option>
+          <option value="pending">En attente</option>
+          <option value="validated">Validées</option>
+          <option value="exported">Exportées</option>
+        </select>
+        
+        <select class="field" id="filterYear">
+          <option value="all">Toutes années</option>
+          <option value="2026">2026</option>
+          <option value="2025" selected>2025</option>
+          <option value="2024">2024</option>
+        </select>
+        
+        <input type="search" class="search" id="searchInput" placeholder="🔍 Rechercher...">
+      </div>
+    </div>
+
+    <!-- Loading state -->
+    <div class="loading" id="loadingState">
+      <div class="spinner"></div>
+      <div>Chargement des factures...</div>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState" style="display: none;">
+      <div class="empty-state-icon">📭</div>
+      <h3>Aucune facture en attente</h3>
+      <p>Importez des factures depuis le module d'extraction pour commencer.</p>
+      <button class="btn primary" style="margin-top: 16px;" onclick="window.location.href='import-factures.html'">
+        📤 Aller au module d'import
+      </button>
+    </div>
+
+    <!-- Liste factures -->
+    <div class="queue-list" id="queueList"></div>
+  </div>
+
+  <script>
+    // Configuration Supabase
+    const SUPABASE_URL = 'https://twyacfsojmsmjabogort.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InR3eWFjZnNvam1zbWphYm9nb3J0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgyODQ2ODksImV4cCI6MjA4Mzg2MDY4OX0.9e3YBdkPnE7uaNJYf9R-3d3bZICRJMxJHUtGQsV5CO8';
+    
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    
+    console.log('✅ Supabase client initialisé');
+    
+    // État application
+    let queueData = [];
+    
+    // Initialisation
+    async function init() {
+      console.log('🚀 Initialisation page validation exports');
+      
+      // Charger données
+      await loadQueue();
+      
+      // Event listeners
+      document.getElementById('btnRefresh').addEventListener('click', loadQueue);
+      document.getElementById('btnImportFactures').addEventListener('click', () => {
+        window.location.href = 'import-factures.html';
+      });
+      
+      document.getElementById('filterStatus').addEventListener('change', renderQueue);
+      document.getElementById('filterYear').addEventListener('change', renderQueue);
+      document.getElementById('searchInput').addEventListener('input', renderQueue);
+      
+      console.log('✅ Initialisation terminée');
+    }
+    
+    // Charger file d'attente
+    async function loadQueue() {
+      console.log('📥 Chargement file d\'attente...');
+      
+      document.getElementById('loadingState').style.display = 'block';
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('queueList').innerHTML = '';
+      
+      try {
+        const { data, error } = await supabaseClient
+          .from('v_queue_summary')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (error) throw error;
+        
+        queueData = data || [];
+        console.log(`✅ ${queueData.length} factures chargées`);
+        
+        updateStats();
+        renderQueue();
+        
+      } catch (err) {
+        console.error('❌ Erreur chargement:', err);
+        alert('Erreur chargement: ' + err.message);
+      } finally {
+        document.getElementById('loadingState').style.display = 'none';
+      }
+    }
+    
+    // Mettre à jour statistiques
+    function updateStats() {
+      const stats = {
+        total: queueData.length,
+        pending: queueData.filter(q => q.status === 'pending').length,
+        validated: queueData.filter(q => q.status === 'validated').length,
+        exported: queueData.filter(q => q.status === 'exported').length
+      };
+      
+      document.getElementById('statTotal').textContent = stats.total;
+      document.getElementById('statPending').textContent = stats.pending;
+      document.getElementById('statValidated').textContent = stats.validated;
+      document.getElementById('statExported').textContent = stats.exported;
+    }
+    
+    // Afficher file d'attente
+    function renderQueue() {
+      const filterStatus = document.getElementById('filterStatus').value;
+      const filterYear = document.getElementById('filterYear').value;
+      const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+      
+      // Filtrer données
+      let filtered = queueData;
+      
+      if (filterStatus !== 'all') {
+        filtered = filtered.filter(q => q.status === filterStatus);
+      }
+      
+      if (filterYear !== 'all') {
+        filtered = filtered.filter(q => q.annee === parseInt(filterYear));
+      }
+      
+      if (searchQuery) {
+        filtered = filtered.filter(q => 
+          q.fichier_nom?.toLowerCase().includes(searchQuery) ||
+          q.client_detecte?.toLowerCase().includes(searchQuery) ||
+          q.client_valide?.toLowerCase().includes(searchQuery)
+        );
+      }
+      
+      const container = document.getElementById('queueList');
+      
+      if (filtered.length === 0) {
+        document.getElementById('emptyState').style.display = 'block';
+        container.innerHTML = '';
+        return;
+      }
+      
+      document.getElementById('emptyState').style.display = 'none';
+      
+      container.innerHTML = filtered.map(queue => `
+        <div class="queue-card ${queue.status}">
+          <div class="queue-header">
+            <div>
+              <div class="queue-title">
+                ${queue.fichier_nom || 'Facture sans nom'}
+              </div>
+              <div class="queue-meta">
+                <span>📁 ${queue.client_detecte || queue.client_valide || 'Client inconnu'}</span>
+                ${queue.etablissement_valide ? `<span>🏢 ${queue.etablissement_valide}</span>` : ''}
+                <span>📅 ${queue.annee || '—'}</span>
+                <span>📄 ${queue.services_count || 0} services</span>
+              </div>
+            </div>
+            <span class="status-badge ${queue.status}">
+              ${getStatusLabel(queue.status)}
+            </span>
+          </div>
+          
+          ${queue.status === 'pending' ? `
+            <div class="queue-status">
+              ✅ ${queue.services_auto || 0} détectés automatiquement • 
+              ⚠️ ${queue.services_manual || 0} nécessitent validation • 
+              ❌ ${queue.services_excluded || 0} exclus
+            </div>
+          ` : ''}
+          
+          ${queue.status === 'exported' ? `
+            <div class="queue-status" style="background: #c6f6d5; color: #22543d;">
+              ✅ Exporté le ${formatDate(queue.exported_at)}
+            </div>
+          ` : ''}
+          
+          <div class="queue-actions">
+            <button class="btn" onclick="viewQueue(${queue.id})">
+              👁️ Prévisualiser
+            </button>
+            
+            ${queue.status === 'pending' ? `
+              <button class="btn primary" onclick="validateQueue(${queue.id})" ${queue.services_manual > 0 ? 'disabled' : ''}>
+                ✅ Valider ${queue.services_auto > 0 ? `(${queue.services_auto})` : ''}
+              </button>
+            ` : ''}
+            
+            ${queue.status === 'exported' ? `
+              <button class="btn" onclick="openGrid(${queue.id})">
+                🔗 Voir la grille
+              </button>
+            ` : ''}
+            
+            <button class="btn" onclick="deleteQueue(${queue.id})" style="margin-left: auto;">
+              🗑️ Supprimer
+            </button>
+          </div>
+        </div>
+      `).join('');
+    }
+    
+    // Helpers
+    function getStatusLabel(status) {
+      const labels = {
+        'pending': '⏳ En attente',
+        'validated': '✅ Validée',
+        'exported': '📤 Exportée',
+        'rejected': '❌ Rejetée',
+        'draft': '📝 Brouillon'
+      };
+      return labels[status] || status;
+    }
+    
+    function formatDate(dateStr) {
+      if (!dateStr) return '—';
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('fr-FR', { 
+        day: '2-digit', 
+        month: '2-digit', 
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+    
+    // Actions
+    async function viewQueue(queueId) {
+      console.log('👁️ Voir queue:', queueId);
+      alert('Modal prévisualisation (à implémenter Sprint 3)');
+    }
+    
+    async function validateQueue(queueId) {
+      console.log('✅ Valider queue:', queueId);
+      alert('Modal validation (à implémenter Sprint 3)');
+    }
+    
+    async function openGrid(queueId) {
+      console.log('🔗 Ouvrir grille:', queueId);
+      window.location.href = 'tarification.html';
+    }
+    
+    async function deleteQueue(queueId) {
+      if (!confirm('Supprimer cette facture de la file d\'attente ?')) return;
+      
+      try {
+        const { error } = await supabaseClient
+          .from('factures_export_queue')
+          .delete()
+          .eq('id', queueId);
+        
+        if (error) throw error;
+        
+        console.log('✅ Queue supprimée');
+        await loadQueue();
+        
+      } catch (err) {
+        console.error('❌ Erreur suppression:', err);
+        alert('Erreur: ' + err.message);
+      }
+    }
+    
+    // Démarrer
+    init();
+  </script>
+</body>
+</html>

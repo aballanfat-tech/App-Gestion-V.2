@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Gestion Factures - Autocars Ballanfat</title>
+  
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- PDF.js -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    :root {
+      --primary: #4299e1;
+      --success: #48bb78;
+      --warning: #ed8936;
+      --danger: #f56565;
+      --gray-50: #f7fafc;
+      --gray-100: #edf2f7;
+      --gray-200: #e2e8f0;
+      --gray-300: #cbd5e0;
+      --gray-600: #718096;
+      --gray-800: #2d3748;
+      --gray-900: #1a202c;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--gray-50);
+      color: var(--gray-900);
+      line-height: 1.6;
+    }
+    
+    /* ===== HEADER ===== */
+    .header {
+      background: white;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 16px 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .header-content {
+      max-width: 1600px;
+      margin: 0 auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .header h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--gray-900);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    
+    .header-actions {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+    
+    .user-info {
+      font-size: 14px;
+      color: var(--gray-600);
+    }
+    
+    /* ===== LAYOUT PRINCIPAL ===== */
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 24px;
+    }
+    
+    .main-layout {
+      display: grid;
+      grid-template-columns: 380px 1fr;
+      gap: 24px;
+      align-items: start;
+    }
+    
+    @media (max-width: 1200px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+    
+    /* ===== ZONE UPLOAD (GAUCHE) ===== */
+    .upload-section {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      position: sticky;
+      top: 24px;
+    }
+    
+    .section-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    .dropzone {
+      border: 2px dashed var(--gray-300);
+      border-radius: 8px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      background: var(--gray-50);
+    }
+    
+    .dropzone:hover,
+    .dropzone.dragover {
+      border-color: var(--primary);
+      background: #ebf8ff;
+    }
+    
+    .dropzone-icon {
+      font-size: 48px;
+      margin-bottom: 12px;
+    }
+    
+    .dropzone-text {
+      font-size: 14px;
+      color: var(--gray-600);
+      margin-bottom: 12px;
+    }
+    
+    .dropzone-hint {
+      font-size: 12px;
+      color: var(--gray-600);
+    }
+    
+    .file-input {
+      display: none;
+    }
+    
+    .files-list {
+      margin-top: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    
+    .file-item {
+      background: var(--gray-50);
+      padding: 12px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 14px;
+    }
+    
+    .file-item.uploading {
+      background: #ebf8ff;
+    }
+    
+    .file-item.success {
+      background: #c6f6d5;
+    }
+    
+    .file-item.error {
+      background: #fed7d7;
+    }
+    
+    .file-name {
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-right: 8px;
+    }
+    
+    .file-status {
+      font-size: 12px;
+      color: var(--gray-600);
+    }
+    
+    .file-remove {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 18px;
+      color: var(--danger);
+      padding: 0 4px;
+    }
+    
+    .progress-bar {
+      height: 4px;
+      background: var(--gray-200);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 8px;
+    }
+    
+    .progress-fill {
+      height: 100%;
+      background: var(--primary);
+      transition: width 0.3s;
+    }
+    
+    /* ===== ZONE LISTE (DROITE) ===== */
+    .queue-section {
+      background: white;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    
+    .queue-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    
+    .stats {
+      display: flex;
+      gap: 16px;
+      font-size: 14px;
+    }
+    
+    .stat-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .stat-value {
+      font-weight: 700;
+      color: var(--gray-900);
+    }
+    
+    .stat-label {
+      color: var(--gray-600);
+    }
+    
+    .filters {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    .filter-input {
+      padding: 8px 12px;
+      border: 1px solid var(--gray-300);
+      border-radius: 6px;
+      font-size: 14px;
+      min-width: 150px;
+    }
+    
+    .search-input {
+      padding: 8px 12px;
+      border: 1px solid var(--gray-300);
+      border-radius: 6px;
+      font-size: 14px;
+      width: 250px;
+    }
+    
+    .queue-list {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .queue-card {
+      background: var(--gray-50);
+      border-radius: 8px;
+      padding: 16px;
+      border-left: 4px solid var(--gray-300);
+      transition: all 0.2s;
+    }
+    
+    .queue-card:hover {
+      box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    }
+    
+    .queue-card.status-pending {
+      border-left-color: var(--warning);
+    }
+    
+    .queue-card.status-ready {
+      border-left-color: var(--success);
+    }
+    
+    .queue-card.status-exported {
+      border-left-color: var(--primary);
+    }
+    
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 12px;
+    }
+    
+    .card-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--gray-900);
+      margin-bottom: 4px;
+    }
+    
+    .card-meta {
+      display: flex;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--gray-600);
+      flex-wrap: wrap;
+    }
+    
+    .card-meta span {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .badge {
+      display: inline-block;
+      padding: 4px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+    
+    .badge.pending {
+      background: #feebc8;
+      color: #7c2d12;
+    }
+    
+    .badge.ready {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+    
+    .badge.exported {
+      background: #bee3f8;
+      color: #1a365d;
+    }
+    
+    .card-stats {
+      background: white;
+      padding: 10px;
+      border-radius: 6px;
+      font-size: 13px;
+      margin-bottom: 12px;
+    }
+    
+    .card-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    
+    /* ===== BOUTONS ===== */
+    .btn {
+      padding: 10px 16px;
+      border: 1px solid var(--gray-300);
+      background: white;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-family: inherit;
+    }
+    
+    .btn:hover:not(:disabled) {
+      background: var(--gray-50);
+      border-color: var(--gray-400);
+    }
+    
+    .btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+    
+    .btn.primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+    
+    .btn.primary:hover:not(:disabled) {
+      background: #3182ce;
+    }
+    
+    .btn.success {
+      background: var(--success);
+      color: white;
+      border-color: var(--success);
+    }
+    
+    .btn.success:hover:not(:disabled) {
+      background: #38a169;
+    }
+    
+    .btn.danger {
+      background: var(--danger);
+      color: white;
+      border-color: var(--danger);
+    }
+    
+    .btn.small {
+      padding: 6px 12px;
+      font-size: 13px;
+    }
+    
+    /* ===== MODAL ===== */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    
+    .modal-overlay.open {
+      display: flex;
+    }
+    
+    .modal {
+      background: white;
+      border-radius: 12px;
+      max-width: 900px;
+      width: 100%;
+      max-height: 90vh;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+    
+    .modal-header {
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--gray-200);
+    }
+    
+    .modal-title {
+      font-size: 20px;
+      font-weight: 700;
+    }
+    
+    .modal-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 24px;
+      cursor: pointer;
+      color: var(--gray-600);
+    }
+    
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      flex: 1;
+    }
+    
+    /* ===== ÉTATS ===== */
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: var(--gray-600);
+    }
+    
+    .empty-state-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+    }
+    
+    .empty-state h3 {
+      font-size: 18px;
+      color: var(--gray-900);
+      margin-bottom: 8px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: var(--gray-600);
+    }
+    
+    .spinner {
+      border: 3px solid var(--gray-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      width: 40px;
+      height: 40px;
+      animation: spin 1s linear infinite;
+      margin: 0 auto 16px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+    
+    /* ===== MESSAGES ===== */
+    .message {
+      padding: 12px 16px;
+      border-radius: 6px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+    
+    .message.success {
+      background: #c6f6d5;
+      color: #22543d;
+    }
+    
+    .message.error {
+      background: #fed7d7;
+      color: #742a2a;
+    }
+    
+    .message.warning {
+      background: #feebc8;
+      color: #7c2d12;
+    }
+    
+    .message.info {
+      background: #bee3f8;
+      color: #1a365d;
+    }
+  </style>
+</head>
+
+<body>
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-content">
+      <h1>
+        📄 Gestion Factures
+      </h1>
+      <div class="header-actions">
+        <span class="user-info" id="userInfo">Chargement...</span>
+        <button class="btn" onclick="window.location.href='tarification.html'">
+          📊 Grille Tarifaire
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- CONTAINER PRINCIPAL -->
+  <div class="container">
+    <!-- Messages -->
+    <div id="messageContainer"></div>
+
+    <!-- Layout 2 colonnes -->
+    <div class="main-layout">
+      
+      <!-- ========================================
+           COLONNE GAUCHE : UPLOAD
+           ======================================== -->
+      <div class="upload-section">
+        <h2 class="section-title">📤 Import Factures</h2>
+        
+        <!-- Dropzone -->
+        <div class="dropzone" id="dropzone">
+          <div class="dropzone-icon">📁</div>
+          <div class="dropzone-text">
+            Glissez vos factures PDF ici
+          </div>
+          <div class="dropzone-hint">
+            ou cliquez pour sélectionner (max 20 fichiers, 10 MB/fichier)
+          </div>
+          <input type="file" id="fileInput" class="file-input" accept=".pdf" multiple />
+        </div>
+        
+        <!-- Liste fichiers sélectionnés -->
+        <div id="filesList" class="files-list"></div>
+        
+        <!-- Bouton extraction -->
+        <button class="btn primary" id="btnExtract" style="width: 100%; margin-top: 16px;" disabled>
+          🚀 Extraire (<span id="fileCount">0</span>)
+        </button>
+      </div>
+      
+      <!-- ========================================
+           COLONNE DROITE : LISTE FACTURES
+           ======================================== -->
+      <div class="queue-section">
+        <div class="queue-header">
+          <div>
+            <h2 class="section-title">📊 Factures (<span id="totalCount">0</span>)</h2>
+            <div class="stats">
+              <div class="stat-item">
+                <span class="stat-value" id="statPending">0</span>
+                <span class="stat-label">En attente</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="statReady">0</span>
+                <span class="stat-label">Prêtes</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-value" id="statExported">0</span>
+                <span class="stat-label">Exportées</span>
+              </div>
+            </div>
+          </div>
+          
+          <div class="filters">
+            <select class="filter-input" id="filterStatus">
+              <option value="all">Tous statuts</option>
+              <option value="pending">En attente</option>
+              <option value="ready">Prêtes</option>
+              <option value="exported">Exportées</option>
+            </select>
+            
+            <select class="filter-input" id="filterYear">
+              <option value="all">Toutes années</option>
+              <option value="2026">2026</option>
+              <option value="2025" selected>2025</option>
+              <option value="2024">2024</option>
+            </select>
+            
+            <input 
+              type="search" 
+              class="search-input" 
+              id="searchInput" 
+              placeholder="🔍 Rechercher..."
+            />
+            
+            <button class="btn" id="btnRefresh">
+              🔄 Actualiser
+            </button>
+          </div>
+        </div>
+        
+        <!-- Loading -->
+        <div class="loading" id="loadingState">
+          <div class="spinner"></div>
+          <div>Chargement des factures...</div>
+        </div>
+        
+        <!-- Empty state -->
+        <div class="empty-state" id="emptyState" style="display: none;">
+          <div class="empty-state-icon">📭</div>
+          <h3>Aucune facture</h3>
+          <p>Importez des factures PDF pour commencer</p>
+        </div>
+        
+        <!-- Liste factures -->
+        <div class="queue-list" id="queueList"></div>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- MODAL VISUALISATION FACTURE -->
+  <div class="modal-overlay" id="modalOverlay">
+    <div class="modal">
+      <div class="modal-header">
+        <button class="modal-close" onclick="closeModal()">×</button>
+        <h3 class="modal-title" id="modalTitle">Facture</h3>
+      </div>
+      <div class="modal-body" id="modalBody">
+        <!-- Contenu dynamique -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Configuration -->
+  <script src="./config.js"></script>
+  
+  <!-- Modules existants réutilisés -->
+  <script src="./scripts/state.js"></script>
+  <script src="./scripts/supabase-client.js"></script>
+  <script src="./scripts/pdf-extractor.js"></script>
+  <script src="./scripts/parser.js"></script>
+  
+  <!-- Main unifié -->
+  <script src="./gestion-factures-main.js"></script>
+</body>
+</html>

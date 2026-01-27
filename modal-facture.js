@@ -78,16 +78,26 @@
 
   // ===== RENDU MODALE =====
   function renderFactureModal(facture) {
+    console.log('🎨 Rendu modal, données facture:', facture);
+    
     // Titre
     document.getElementById('modalTitle').textContent = facture.fichier_nom || 'Facture';
 
-    // Onglets
+    // Onglets - Rendre tous les onglets
+    console.log('📝 Rendu onglet Édition...');
     renderEditTab(facture);
+    
+    console.log('📊 Rendu onglet Tableau...');
     renderTableTab(facture);
+    
+    console.log('📄 Rendu onglet Texte...');
     renderTextTab(facture);
+    
+    console.log('🐛 Rendu onglet Debug...');
     renderDebugTab(facture);
 
     // Activer premier onglet
+    console.log('✅ Activation onglet Édition');
     activateTab('edit');
   }
 
@@ -95,8 +105,16 @@
   function renderEditTab(facture) {
     const container = document.getElementById('tab-edit');  // ID avec tiret
     
+    if (!container) {
+      console.error('❌ Élément tab-edit introuvable');
+      return;
+    }
+    
     const donneesBrutes = facture.donnees_brutes || {};
     const fields = donneesBrutes.fields || {};
+
+    console.log('📝 Données fields:', fields);
+    console.log('📊 Données table:', donneesBrutes.table);
 
     container.innerHTML = `
       <div style="padding: 20px;">
@@ -189,6 +207,12 @@
   // ===== ONGLET TABLEAU =====
   function renderTableTab(facture) {
     const container = document.getElementById('tab-table');  // ID avec tiret
+    
+    if (!container) {
+      console.error('❌ Élément tab-table introuvable');
+      return;
+    }
+    
     container.innerHTML = `
       <div style="padding: 20px;">
         <h3 style="margin-bottom: 16px;">📊 Tableau Extrait</h3>
@@ -200,7 +224,13 @@
   // ===== ONGLET TEXTE =====
   function renderTextTab(facture) {
     const container = document.getElementById('tab-text');  // ID avec tiret
-    const texte = facture.texte_ocr || facture.donnees_brutes?.fullText || '';
+    
+    if (!container) {
+      console.error('❌ Élément tab-text introuvable');
+      return;
+    }
+    
+    const texte = facture.texte_ocr || facture.donnees_brutes?.fullText || 'Aucun texte disponible';
 
     container.innerHTML = `
       <div style="padding: 20px;">
@@ -214,6 +244,8 @@
           font-size: 13px;
           line-height: 1.5;
           font-family: 'Courier New', monospace;
+          white-space: pre-wrap;
+          word-wrap: break-word;
         ">${escapeHtml(texte)}</pre>
       </div>
     `;
@@ -222,6 +254,11 @@
   // ===== ONGLET DEBUG =====
   function renderDebugTab(facture) {
     const container = document.getElementById('tab-debug');  // ID avec tiret
+    
+    if (!container) {
+      console.error('❌ Élément tab-debug introuvable');
+      return;
+    }
     
     const jsonData = {
       id: facture.id,
@@ -244,6 +281,8 @@
           font-size: 13px;
           line-height: 1.5;
           font-family: 'Courier New', monospace;
+          white-space: pre-wrap;
+          word-wrap: break-word;
         ">${JSON.stringify(jsonData, null, 2)}</pre>
       </div>
     `;

@@ -93,7 +93,7 @@
 
   // ===== ONGLET ÉDITION =====
   function renderEditTab(facture) {
-    const container = document.getElementById('tabEdit');
+    const container = document.getElementById('tab-edit');  // ID avec tiret
     
     const donneesBrutes = facture.donnees_brutes || {};
     const fields = donneesBrutes.fields || {};
@@ -188,7 +188,7 @@
 
   // ===== ONGLET TABLEAU =====
   function renderTableTab(facture) {
-    const container = document.getElementById('tabTable');
+    const container = document.getElementById('tab-table');  // ID avec tiret
     container.innerHTML = `
       <div style="padding: 20px;">
         <h3 style="margin-bottom: 16px;">📊 Tableau Extrait</h3>
@@ -199,7 +199,7 @@
 
   // ===== ONGLET TEXTE =====
   function renderTextTab(facture) {
-    const container = document.getElementById('tabText');
+    const container = document.getElementById('tab-text');  // ID avec tiret
     const texte = facture.texte_ocr || facture.donnees_brutes?.fullText || '';
 
     container.innerHTML = `
@@ -221,7 +221,7 @@
 
   // ===== ONGLET DEBUG =====
   function renderDebugTab(facture) {
-    const container = document.getElementById('tabDebug');
+    const container = document.getElementById('tab-debug');  // ID avec tiret
     
     const jsonData = {
       id: facture.id,

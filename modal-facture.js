@@ -123,31 +123,31 @@
         <div style="display: grid; gap: 16px;">
           <div>
             <label style="display: block; margin-bottom: 4px; font-weight: 600;">Numéro de facture</label>
-            <input type="text" class="field" value="${escapeHtml(fields.numero_facture || '')}" readonly />
+            <input type="text" class="field" value="${escapeHtml(fields.numero_facture || '')}" />
           </div>
 
           <div>
             <label style="display: block; margin-bottom: 4px; font-weight: 600;">Date</label>
-            <input type="text" class="field" value="${escapeHtml(fields.date || '')}" readonly />
+            <input type="text" class="field" value="${escapeHtml(fields.date || '')}" />
           </div>
 
           <div>
             <label style="display: block; margin-bottom: 4px; font-weight: 600;">Client</label>
-            <input type="text" class="field" value="${escapeHtml(fields.client_nom || fields.destinataire || '')}" readonly />
+            <input type="text" class="field" value="${escapeHtml(fields.client_nom || fields.destinataire || '')}" />
           </div>
 
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
             <div>
               <label style="display: block; margin-bottom: 4px; font-weight: 600;">Total HT</label>
-              <input type="text" class="field" value="${escapeHtml(fields.total_ht || '')}" readonly />
+              <input type="text" class="field" value="${escapeHtml(fields.total_ht || '')}" />
             </div>
             <div>
               <label style="display: block; margin-bottom: 4px; font-weight: 600;">TVA</label>
-              <input type="text" class="field" value="${escapeHtml(fields.total_tva || '')}" readonly />
+              <input type="text" class="field" value="${escapeHtml(fields.total_tva || '')}" />
             </div>
             <div>
               <label style="display: block; margin-bottom: 4px; font-weight: 600;">Total TTC</label>
-              <input type="text" class="field" value="${escapeHtml(fields.total_ttc || '')}" readonly />
+              <input type="text" class="field" value="${escapeHtml(fields.total_ttc || '')}" />
             </div>
           </div>
         </div>
@@ -290,28 +290,50 @@
 
   // ===== GESTION ONGLETS =====
   function activateTab(tabName) {
-    // Désactiver tous
-    ['edit', 'table', 'text', 'debug'].forEach(name => {
-      const btn = document.querySelector(`[data-tab="${name}"]`);
-      const content = document.getElementById(`tab-${name}`);
-      
-      if (btn) btn.classList.remove('active');
-      if (content) content.classList.remove('active');
+    console.log('🔄 Activation onglet:', tabName);
+    
+    // Désactiver tous les boutons onglets
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.classList.remove('active');
     });
 
-    // Activer sélectionné
-    const btn = document.querySelector(`[data-tab="${tabName}"]`);
-    const content = document.getElementById(`tab-${tabName}`);
-    
-    if (btn) btn.classList.add('active');
-    if (content) content.classList.add('active');
+    // Masquer tous les contenus
+    document.querySelectorAll('.tab-content').forEach(content => {
+      content.style.display = 'none';
+      content.classList.remove('active');
+    });
+
+    // Activer le bouton sélectionné
+    const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
+    if (activeBtn) {
+      activeBtn.classList.add('active');
+      console.log('✅ Bouton activé:', tabName);
+    } else {
+      console.error('❌ Bouton introuvable:', tabName);
+    }
+
+    // Afficher le contenu correspondant
+    const activeContent = document.getElementById(`tab-${tabName}`);
+    if (activeContent) {
+      activeContent.style.display = 'block';
+      activeContent.classList.add('active');
+      console.log('✅ Contenu affiché:', tabName);
+    } else {
+      console.error('❌ Contenu introuvable:', tabName);
+    }
   }
 
   // Setup listeners onglets
   function setupTabListeners() {
-    document.querySelectorAll('[data-tab]').forEach(btn => {
+    const buttons = document.querySelectorAll('[data-tab]');
+    console.log('🎯 Setup listeners onglets, boutons trouvés:', buttons.length);
+    
+    buttons.forEach(btn => {
+      const tabName = btn.getAttribute('data-tab');
+      console.log('📌 Listener ajouté sur onglet:', tabName);
+      
       btn.addEventListener('click', () => {
-        const tabName = btn.getAttribute('data-tab');
+        console.log('🖱️ Clic onglet:', tabName);
         activateTab(tabName);
       });
     });

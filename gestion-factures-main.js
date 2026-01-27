@@ -24,14 +24,17 @@
         throw new Error('Configuration Supabase manquante');
       }
 
-      supabaseClient = supabase.createClient(
+         supabaseClient = supabase.createClient(
         window.SUPABASE_CONFIG.url,
         window.SUPABASE_CONFIG.anonKey,
         window.SUPABASE_CONFIG.options
       );
 
-      console.log('✅ Supabase initialisé');
+      // Exposer globalement pour modal-facture.js
+      window.supabaseClient = supabaseClient;
 
+      console.log('✅ Supabase initialisé');
+      
       // 2. Vérifier session
       const { data: { user }, error } = await supabaseClient.auth.getUser();
       

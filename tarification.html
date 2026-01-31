@@ -6451,27 +6451,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 // === FIN RÉORGANISATION CLIENTS ===
 
-<!-- Indicateur sauvegarde -->
-<div id="saveIndicator" style="position: fixed; bottom: 20px; right: 20px; background: #5cb85c; color: white; padding: 12px 20px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: none; z-index: 10000; font-weight: bold;">
-  ✅ Sauvegardé
-</div>
 
-<!-- Modale Réorganisation Clients V11.0.16 -->
-<div id="reorderModal">
-  <div class="reorder-content">
-    <h3>↕️ Réorganiser les clients</h3>
-    <p class="muted">Glissez-déposez les clients pour modifier l'ordre d'affichage dans le menu déroulant.</p>
-    <div id="clientList"></div>
-    <div class="reorder-actions">
-      <button id="btnCancelReorder" type="button" class="btn btn-secondary">Annuler</button>
-      <button id="btnSaveReorder" type="button" class="btn">Enregistrer l'ordre</button>
-    </div>
-  </div>
-</div>
-
-
-	
-	
 // ========================================
 // SPRINT 2.6: DRAG & DROP HANDLERS
 // ========================================
@@ -6948,8 +6928,26 @@ console.log('✅ Sprint 2.6 Drag & Drop handlers chargés');
 // FIN SPRINT 2.6
 // ========================================
 
-	</script>
+</script>
+
+<!-- Indicateur sauvegarde -->
+<div id="saveIndicator" style="position: fixed; bottom: 20px; right: 20px; background: #5cb85c; color: white; padding: 12px 20px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: none; z-index: 10000; font-weight: bold;">
+  ✅ Sauvegardé
+</div>
+
+<!-- Modale Réorganisation Clients V11.0.16 -->
+<div id="reorderModal">
+  <div class="reorder-content">
+    <h3>↕️ Réorganiser les clients</h3>
+    <p class="muted">Glissez-déposez les clients pour modifier l'ordre d'affichage dans le menu déroulant.</p>
+    <div id="clientList"></div>
+    <div class="reorder-actions">
+      <button id="btnCancelReorder" type="button" class="btn btn-secondary">Annuler</button>
+      <button id="btnSaveReorder" type="button" class="btn">Enregistrer l'ordre</button>
+    </div>
+  </div>
+</div>
 
 </body>
-	
+		
 </html>

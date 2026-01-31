@@ -2177,6 +2177,7 @@ let transCounter = 0;
 let destOriginalOrder = [];
 let lastSaved = null;
 let currentContext = { client: null, year: null };
+let currentGridData = null; // SPRINT 2.6: Stocker grille actuelle en mémoire
 
 // Variables auto-save (BUGFIX v11.0.23)
 let autoSaveTimeout = null;
@@ -3215,6 +3216,9 @@ async function loadGrid(){
  if (cloudData) {
         deserializeGrid(cloudData);
         
+        // SPRINT 2.6: Stocker en mémoire
+        currentGridData = cloudData;
+        
         // SPRINT 2.6: Render section importées
         const container = document.getElementById('importedSectionContainer');
         if (container) {
@@ -3243,6 +3247,9 @@ async function loadGrid(){
   try{
     const data = JSON.parse(raw);
   deserializeGrid(data);
+    
+    // SPRINT 2.6: Stocker en mémoire
+    currentGridData = data;
     
     // SPRINT 2.6: Render section importées
     const container = document.getElementById('importedSectionContainer');
@@ -6477,24 +6484,18 @@ function handleImportDragStart(event) {
 
   currentDragItem = importId;
   
-  // Récupérer données item depuis grille actuelle
-  const client = getCurrentClient();
-  const year = getCurrentYear();
-  const key = getContextKey(client, year);
-  const raw = localStorage.getItem(key);
-  
-  if (!raw) {
-    console.error('❌ Grille introuvable');
+  // SPRINT 2.6: Utiliser grille en mémoire
+  if (!currentGridData) {
+    console.error('❌ Grille introuvable en mémoire');
     return;
   }
 
-  const gridData = JSON.parse(raw);
-  if (!gridData.destinations_importees) {
+  if (!currentGridData.destinations_importees) {
     console.error('❌ Pas de destinations importées dans grille');
     return;
   }
 
-  const imported = gridData.destinations_importees;
+  const imported = currentGridData.destinations_importees;
   currentDragData = imported.find(i => i.id === importId);
 
   if (!currentDragData) {
@@ -6582,16 +6583,11 @@ async function handleCellDrop(event) {
   }
 
   try {
-    const client = getCurrentClient();
-    const year = getCurrentYear();
-    const key = getContextKey(client, year);
-    const raw = localStorage.getItem(key);
-    
-    if (!raw) {
-      throw new Error('Grille introuvable');
+    if (!currentGridData) {
+      throw new Error('Grille introuvable en mémoire');
     }
 
-    const gridData = JSON.parse(raw);
+    const gridData = currentGridData;
 
     // Initialiser destinations si besoin
     if (!gridData.destinations) {
@@ -6627,10 +6623,10 @@ async function handleCellDrop(event) {
       console.log(`🗑️ Item retiré des importées (index ${importIndex})`);
     }
 
-    // Sauvegarder
-    localStorage.setItem(key, JSON.stringify(gridData));
+    // Mettre à jour mémoire
+    currentGridData = gridData;
     
-    // Sauvegarder dans Supabase si disponible
+    // Sauvegarder dans Supabase
     if (isSupabaseAvailable) {
       await saveGrid();
     }
@@ -6667,17 +6663,12 @@ async function handleCellDrop(event) {
 function editImport(importId) {
   console.log('📝 Édition import:', importId);
   
-  const client = getCurrentClient();
-  const year = getCurrentYear();
-  const key = getContextKey(client, year);
-  const raw = localStorage.getItem(key);
-  
-  if (!raw) {
-    alert('Grille introuvable');
+  if (!currentGridData) {
+    alert('Grille introuvable en mémoire');
     return;
   }
 
-  const gridData = JSON.parse(raw);
+  const gridData = currentGridData;
   if (!gridData.destinations_importees) {
     alert('Pas de destinations importées');
     return;
@@ -6707,9 +6698,10 @@ function editImport(importId) {
   item.description = newDesc;
   item.prix_ht = prixNum;
 
-  // Sauvegarder
-  localStorage.setItem(key, JSON.stringify(gridData));
+  // Mettre à jour mémoire
+  currentGridData = gridData;
   
+  // Sauvegarder
   if (isSupabaseAvailable) {
     saveGrid().then(() => {
       showToast('success', '✅ Item modifié');
@@ -6732,16 +6724,11 @@ async function deleteImport(importId) {
   }
 
   try {
-    const client = getCurrentClient();
-    const year = getCurrentYear();
-    const key = getContextKey(client, year);
-    const raw = localStorage.getItem(key);
-    
-    if (!raw) {
-      throw new Error('Grille introuvable');
+    if (!currentGridData) {
+      throw new Error('Grille introuvable en mémoire');
     }
 
-    const gridData = JSON.parse(raw);
+    const gridData = currentGridData;
     
     if (!gridData.destinations_importees) {
       throw new Error('Pas de destinations importées');
@@ -6752,9 +6739,10 @@ async function deleteImport(importId) {
       i => i.id !== importId
     );
 
-    // Sauvegarder
-    localStorage.setItem(key, JSON.stringify(gridData));
+    // Mettre à jour mémoire
+    currentGridData = gridData;
     
+    // Sauvegarder
     if (isSupabaseAvailable) {
       await saveGrid();
     }
@@ -6783,17 +6771,12 @@ async function deleteImport(importId) {
  * Classifier automatiquement selon suggestions
  */
 async function classifyAllAuto() {
-  const client = getCurrentClient();
-  const year = getCurrentYear();
-  const key = getContextKey(client, year);
-  const raw = localStorage.getItem(key);
-  
-  if (!raw) {
-    alert('Grille introuvable');
+  if (!currentGridData) {
+    alert('Grille introuvable en mémoire');
     return;
   }
 
-  const gridData = JSON.parse(raw);
+  const gridData = currentGridData;
   
   if (!gridData.destinations_importees) {
     alert('Pas de destinations importées');
@@ -6851,9 +6834,10 @@ async function classifyAllAuto() {
       i => !i.suggestions || !i.suggestions.destination || !i.suggestions.vehicule
     );
 
-    // Sauvegarder
-    localStorage.setItem(key, JSON.stringify(gridData));
+    // Mettre à jour mémoire
+    currentGridData = gridData;
     
+    // Sauvegarder
     if (isSupabaseAvailable) {
       await saveGrid();
     }
@@ -6878,22 +6862,18 @@ async function clearAllImported() {
   }
 
   try {
-    const client = getCurrentClient();
-    const year = getCurrentYear();
-    const key = getContextKey(client, year);
-    const raw = localStorage.getItem(key);
-    
-    if (!raw) {
-      throw new Error('Grille introuvable');
+    if (!currentGridData) {
+      throw new Error('Grille introuvable en mémoire');
     }
 
-    const gridData = JSON.parse(raw);
+    const gridData = currentGridData;
     const count = (gridData.destinations_importees || []).length;
     gridData.destinations_importees = [];
 
-    // Sauvegarder
-    localStorage.setItem(key, JSON.stringify(gridData));
+    // Mettre à jour mémoire
+    currentGridData = gridData;
     
+    // Sauvegarder
     if (isSupabaseAvailable) {
       await saveGrid();
     }

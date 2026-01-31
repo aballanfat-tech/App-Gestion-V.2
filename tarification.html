@@ -3197,6 +3197,7 @@ function escapeHtml(text) {
 // ========================================
 // FIN SPRINT 2.6
 // ========================================
+
 async function loadGrid(){
   const client = getCurrentClient();
   const year = getCurrentYear();
@@ -3211,7 +3212,7 @@ async function loadGrid(){
   if (isSupabaseAvailable) {
     try {
       const cloudData = await loadGridFromCloud(client, parseInt(year));
-     if (cloudData) {
+ if (cloudData) {
         deserializeGrid(cloudData);
         
         // SPRINT 2.6: Render section importées
@@ -3241,7 +3242,14 @@ async function loadGrid(){
   }
   try{
     const data = JSON.parse(raw);
-    deserializeGrid(data);
+  deserializeGrid(data);
+    
+    // SPRINT 2.6: Render section importées
+    const container = document.getElementById('importedSectionContainer');
+    if (container) {
+      container.innerHTML = renderImportedSection(data);
+    }
+    
     setStatus("💾 Chargé depuis local " + client + " – " + year, false);
     updateStatusIndicator('local', '📁 Local');
   }catch(e){
@@ -6928,9 +6936,7 @@ console.log('✅ Sprint 2.6 Drag & Drop handlers chargés');
 // FIN SPRINT 2.6
 // ========================================
 
-</script>
-
-<!-- Indicateur sauvegarde -->
+	<!-- Indicateur sauvegarde -->
 <div id="saveIndicator" style="position: fixed; bottom: 20px; right: 20px; background: #5cb85c; color: white; padding: 12px 20px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: none; z-index: 10000; font-weight: bold;">
   ✅ Sauvegardé
 </div>
@@ -6947,6 +6953,9 @@ console.log('✅ Sprint 2.6 Drag & Drop handlers chargés');
     </div>
   </div>
 </div>
+
+	
+</script>
 
 </body>
 		

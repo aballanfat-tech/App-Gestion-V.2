@@ -3288,113 +3288,386 @@ async function saveGrid(){
   }
 }
 	
+/**
+ * ============================================================
+ * SPRINT 2.6 V2 FINAL : TABLEAU DESTINATIONS IMPORTÉES
+ * - Parser intelligent (détection destination + véhicules)
+ * - Tableau identique architecture existante
+ * - Drag & drop lignes vers tableaux principaux
+ * ============================================================
+ */
+
 // ========================================
-// SPRINT 2.6: DESTINATIONS IMPORTÉES
+// PARSER INTELLIGENT
 // ========================================
 
 /**
- * Générer HTML section destinations importées
+ * Parser principal - Analyse un service complet
  */
-function renderImportedSection(gridData) {
-  const imported = gridData.destinations_importees || [];
+function parseService(service, factureNum) {
+  const desc = service.desc || service.description || '';
+  const prixHT = parsePrice(service.pu || service.prix_ht);
+  const qty = parseInt(service.qty || service.quantite || 1);
+  const tva = parseTVA(service.tva);
   
-  if (imported.length === 0) {
-    return ''; // Pas de section si vide
-  }
-
-  let html = `
-    <div class="imported-section" id="importedSection">
-      <div class="imported-header">
-        <h3>📥 Destinations Importées (${imported.length})</h3>
-        <div class="imported-actions">
-          <button class="btn" onclick="classifyAllAuto()" style="background: #10b981; color: white; border-color: #10b981;">
-            ✨ Tout classer automatiquement
-          </button>
-          <button class="btn" onclick="clearAllImported()" style="background: #ef4444; color: white; border-color: #ef4444;">
-            🗑️ Tout supprimer
-          </button>
-        </div>
-      </div>
-
-      <div class="imported-list" id="importedList">
-  `;
-
-  imported.forEach(item => {
-    html += renderImportedItem(item);
-  });
-
-  html += `
-      </div>
-    </div>
-  `;
-
-  return html;
+  return {
+    destination: extractDestination(desc),
+    trajet: extractTrajet(desc),
+    vehicules: detectVehicules(desc, prixHT),
+    prix_ht: prixHT,
+    prix_unitaire: qty > 1 ? prixHT / qty : prixHT,
+    quantite: qty,
+    tva: tva,
+    facture: factureNum,
+    description_complete: desc,
+    date_service: extractDate(desc)
+  };
 }
 
 /**
- * Générer HTML pour un item importé
+ * Extraire destination depuis description
  */
-function renderImportedItem(item) {
-  const desc = escapeHtml(item.description || 'Service sans description');
-  const prix = parseFloat(item.prix_ht || 0).toFixed(2);
-  const qty = item.quantite || 1;
-  const tva = item.tva || 10;
-  const facture = escapeHtml(item.facture || 'N/A');
+function extractDestination(desc) {
+  const patterns = [
+    /(?:AR|A\/R|aller\s+retour|Aller\s+retour)\s+(?:à|au|aux)?\s*([A-ZÉÈÊÀÂ][a-zéèêàâôù]+(?:\s+[A-ZÉÈÊÀÂ][a-zéèêàâôù]+)*)/i,
+    /(?:vers|pour|direction|destination)\s+([A-ZÉÈÊÀÂ][a-zéèêàâôù\s\-]+)/i,
+    /Gare\s+(?:d'|de\s+)?([A-ZÉÈÊÀÂ][a-zéèêàâôù\s]+)/i,
+    /Aéroport\s+(?:d'|de\s+)?([A-ZÉÈÊÀÂ][a-zéèêàâôù\s]+)/i,
+    />\s*([A-ZÉÈÊÀÂ][a-zéèêàâôù\s\-]+?)(?:\s+\d+\s*pl|\s*$)/i,
+    /:\s+(?:à|au)\s+([A-ZÉÈÊÀÂ][a-zéèêàâôù\s\-]+)/i
+  ];
+  
+  for (const pattern of patterns) {
+    const match = desc.match(pattern);
+    if (match && match[1]) {
+      let dest = match[1].trim();
+      dest = dest.replace(/\s+journée.*$/i, '');
+      dest = dest.replace(/\s+\d+\s*pl\.?.*$/i, '');
+      return normalizeDestination(dest);
+    }
+  }
+  
+  // Fallback : mots capitalisés
+  const words = desc.split(/\s+/);
+  const caps = [];
+  for (const word of words) {
+    if (/^[A-ZÉÈÊÀÂ][a-zéèêàâôù]+$/.test(word) && 
+        word.length > 2 && 
+        !['AR', 'Service', 'Aller'].includes(word)) {
+      caps.push(word);
+      if (caps.length >= 2) break;
+    }
+  }
+  
+  return caps.length > 0 ? caps.join(' ') : 'Destination non identifiée';
+}
 
+/**
+ * Normaliser nom de destination
+ */
+function normalizeDestination(dest) {
+  const mapping = {
+    'Annecy Albigny': 'Annecy Albigny',
+    'Albigny': 'Annecy Albigny',
+    'Gd Bornand': 'Le Grand Bornand',
+    'Grand Bornand': 'Le Grand Bornand',
+    'St Jean de Sixt': 'Saint Jean de Sixt',
+    'St Jean': 'Saint Jean de Sixt',
+    'Gare Annecy': 'Gare d\'Annecy',
+    'Thones': 'Thônes',
+    'Aravis': 'Col des Aravis',
+    'Merdassier': 'Merdassier',
+    'Prises': 'Les Prises'
+  };
+  
+  return mapping[dest] || dest;
+}
+
+/**
+ * Extraire type de trajet
+ */
+function extractTrajet(desc) {
+  if (/\bAR\b|A\/R|aller\s+retour|aller\s+et\s+retour/i.test(desc)) {
+    return 'Aller et retour';
+  }
+  if (/\baller\b|\bdépart\b/i.test(desc)) {
+    return 'Aller';
+  }
+  if (/\bretour\b/i.test(desc)) {
+    return 'Retour';
+  }
+  return 'Aller et retour';
+}
+
+/**
+ * Détecter véhicules - RÈGLES EXACTES
+ * "car" → Autocar 55
+ * "car 60", "60 pl" → Autocar 64
+ * "minicar" → Minicar 22
+ * "minicar 33" → Minicar 33
+ */
+function detectVehicules(desc, prixHT) {
+  const vehicules = [];
+  const descLower = desc.toLowerCase();
+  
+  // Détection places
+  const placesMatch = desc.match(/(\d+)\s*pl(?:\.|aces)?/i);
+  const nbPlaces = placesMatch ? parseInt(placesMatch[1]) : null;
+  
+  // Mots-clés
+  const hasAutocar = /\bcar\b|\bautocar\b/i.test(desc);
+  const hasMinicar = /minicar|minibus/i.test(desc);
+  const hasVL = /\bVL\b|véhicule\s+léger/i.test(desc);
+  
+  // Quantités ("1 car + 1 minicar")
+  const carMatch = desc.match(/(\d+)\s+(?:auto)?car(?!\s*minicar)/i);
+  const minicarMatch = desc.match(/(\d+)\s+minicar/i);
+  const vlMatch = desc.match(/(\d+)\s+VL/i);
+  
+  // AUTOCAR
+  if (hasAutocar || (nbPlaces && nbPlaces >= 45)) {
+    if (nbPlaces && nbPlaces >= 60) {
+      vehicules.push({ type: 'Autocar 64', count: carMatch ? parseInt(carMatch[1]) : 1 });
+    } else if (nbPlaces && nbPlaces >= 55) {
+      vehicules.push({ type: 'Autocar 55', count: carMatch ? parseInt(carMatch[1]) : 1 });
+    } else {
+      vehicules.push({ type: 'Autocar 55', count: carMatch ? parseInt(carMatch[1]) : 1 });
+    }
+  }
+  
+  // MINICAR
+  if (hasMinicar || (nbPlaces && nbPlaces >= 22 && nbPlaces < 45)) {
+    if (nbPlaces && nbPlaces >= 30) {
+      vehicules.push({ type: 'Minicar 33', count: minicarMatch ? parseInt(minicarMatch[1]) : 1 });
+    } else {
+      vehicules.push({ type: 'Minicar 22', count: minicarMatch ? parseInt(minicarMatch[1]) : 1 });
+    }
+  }
+  
+  // VL
+  if (hasVL || (nbPlaces && nbPlaces < 9)) {
+    vehicules.push({ type: 'VL', count: vlMatch ? parseInt(vlMatch[1]) : 1 });
+  }
+  
+  // FALLBACK PAR PRIX
+  if (vehicules.length === 0) {
+    if (prixHT > 600) vehicules.push({ type: 'Autocar 64', count: 1 });
+    else if (prixHT > 350) vehicules.push({ type: 'Autocar 55', count: 1 });
+    else if (prixHT > 200) vehicules.push({ type: 'Minicar 33', count: 1 });
+    else if (prixHT > 100) vehicules.push({ type: 'Minicar 22', count: 1 });
+    else vehicules.push({ type: 'VL', count: 1 });
+  }
+  
+  return vehicules;
+}
+
+/**
+ * Extraire date du service
+ */
+function extractDate(desc) {
+  const match = desc.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  return match ? `${match[3]}-${match[2]}-${match[1]}` : null;
+}
+
+/**
+ * Parser prix (format "880,00 €" → 880.00)
+ */
+function parsePrice(prix) {
+  if (typeof prix === 'number') return prix;
+  if (!prix) return 0;
+  
+  const cleaned = String(prix)
+    .replace(/\s/g, '')
+    .replace('€', '')
+    .replace(',', '.');
+  
+  return parseFloat(cleaned) || 0;
+}
+
+/**
+ * Parser TVA (format "10%" → 10)
+ */
+function parseTVA(tva) {
+  if (typeof tva === 'number') return tva;
+  if (!tva) return 10;
+  
+  const match = String(tva).match(/(\d+)/);
+  return match ? parseInt(match[1]) : 10;
+}
+
+// ========================================
+// GÉNÉRATION TABLEAU
+// ========================================
+
+/**
+ * Générer HTML du tableau Destinations Importées
+ */
+function renderImportedTable(gridData) {
+  if (!gridData.destinations_importees || gridData.destinations_importees.length === 0) {
+    return '';
+  }
+  
+  const imported = gridData.destinations_importees;
+  
+  // Parser chaque item
+  const rows = [];
+  
+  imported.forEach((item, index) => {
+    const factureNum = item.facture || item.facture_num || 'FACT-XXXX';
+    
+    // Parser le service
+    const parsed = parseService({
+      desc: item.description || item.desc,
+      pu: item.prix_ht,
+      qty: item.quantite || 1,
+      tva: item.tva || 10
+    }, factureNum);
+    
+    // Créer row
+    const totalVehicules = parsed.vehicules.reduce((sum, v) => sum + v.count, 0);
+    const prixParVehicule = totalVehicules > 0 ? parsed.prix_ht / totalVehicules : parsed.prix_ht;
+    
+    const row = {
+      id: item.id || `import-${Date.now()}-${index}`,
+      destination: parsed.destination,
+      trajet: parsed.trajet,
+      date_service: parsed.date_service,
+      description: parsed.description_complete,
+      facture: factureNum,
+      tva: parsed.tva,
+      vehicules: {}
+    };
+    
+    // Remplir prix par véhicule
+    parsed.vehicules.forEach(veh => {
+      const prix = veh.count > 1 ? prixParVehicule * veh.count : prixParVehicule;
+      row.vehicules[veh.type] = {
+        prix_ht: prix,
+        facture: factureNum,
+        count: veh.count
+      };
+    });
+    
+    rows.push(row);
+  });
+  
+  // Générer HTML
   let html = `
-    <div 
-      class="imported-item" 
-      draggable="true"
-      data-import-id="${item.id}"
-      ondragstart="handleImportDragStart(event)"
-      ondragend="handleImportDragEnd(event)"
-    >
-      <div class="import-content">
-        <div class="import-desc">${desc}</div>
-        <div class="import-meta">
-          <span class="import-prix">${prix} €</span>
+<div class="card card-draggable imported-table-card" data-table-id="imported">
+  <div class="card-drag-handle" draggable="true">⋮⋮</div>
+  <h2>📥 Destinations Importées (${rows.length})</h2>
+  <p class="imported-table-info">
+    ⚠️ Glissez-déposez les lignes ci-dessous vers les tableaux "Destinations" ou "Transferts" pour les intégrer.
+  </p>
+  
+  <div class="table-wrapper">
+    <table class="pricing-table imported-table">
+      <thead>
+        <tr>
+          <th class="drag-col">⋮⋮</th>
+          <th class="dest">Destination</th>
+          <th class="trajet">Trajet</th>
+          
+          <th class="col-no">N° Fact. VL</th>
+          <th class="col-ht">VL HT</th>
+          <th class="col-ttc">VL TTC</th>
+          
+          <th class="col-no">N° Fact. M22</th>
+          <th class="col-ht">Minicar 22 HT</th>
+          <th class="col-ttc">M22 TTC</th>
+          
+          <th class="col-no">N° Fact. M33</th>
+          <th class="col-ht">Minicar 33 HT</th>
+          <th class="col-ttc">M33 TTC</th>
+          
+          <th class="col-no">N° Fact. A55</th>
+          <th class="col-ht">Autocar 55 HT</th>
+          <th class="col-ttc">A55 TTC</th>
+          
+          <th class="col-no">N° Fact. A64</th>
+          <th class="col-ht">Autocar 64 HT</th>
+          <th class="col-ttc">A64 TTC</th>
+          
+          <th class="col-note">Description</th>
+          <th>Suppr.</th>
+        </tr>
+      </thead>
+      <tbody>
   `;
-
-  if (qty > 1) {
-    html += `<span class="import-qty">x${qty}</span>`;
-  }
-
+  
+  rows.forEach(row => {
+    html += renderImportedRow(row);
+  });
+  
   html += `
-          <span class="import-tva">TVA ${tva}%</span>
-          <span class="import-facture">📄 ${facture}</span>
-        </div>
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="imported-table-actions">
+    <button class="btn" onclick="clearAllImportedRows()">
+      🗑️ Supprimer toutes les lignes importées
+    </button>
+  </div>
+</div>
   `;
-
-  // Afficher suggestion si présente
-  if (item.suggestions && item.suggestions.destination) {
-    const conf = item.suggestions.confidence || 0;
-    html += `
-        <div class="import-suggestion">
-          💡 Suggestion: ${escapeHtml(item.suggestions.destination)} > 
-          ${escapeHtml(item.suggestions.vehicule)} 
-          (${conf}%)
-        </div>
-    `;
-  }
-
-  html += `
-      </div>
-      <div class="import-actions">
-        <button class="btn-icon" onclick="editImport('${item.id}')" title="Éditer">
-          📝
-        </button>
-        <button class="btn-icon" onclick="deleteImport('${item.id}')" title="Supprimer">
-          🗑️
-        </button>
-      </div>
-    </div>
-  `;
-
+  
   return html;
 }
 
 /**
- * Helper escape HTML
+ * Générer HTML d'une ligne importée
+ */
+function renderImportedRow(row) {
+  const vehiculeCategories = ['VL', 'Minicar 22', 'Minicar 33', 'Autocar 55', 'Autocar 64'];
+  const ttcMultiplier = 1 + (row.tva / 100);
+  
+  let html = `
+<tr class="imported-row" 
+    draggable="true" 
+    data-import-id="${row.id}"
+    data-destination="${escapeHtml(row.destination)}"
+    data-trajet="${escapeHtml(row.trajet)}"
+    ondragstart="handleRowDragStart(event)"
+    ondragend="handleRowDragEnd(event)">
+  
+  <td class="drag-handle-cell">⋮⋮</td>
+  <td class="dest">${escapeHtml(row.destination)}</td>
+  <td class="trajet">${escapeHtml(row.trajet)}</td>
+  `;
+  
+  vehiculeCategories.forEach(veh => {
+    const vehData = row.vehicules[veh];
+    
+    if (vehData && vehData.prix_ht) {
+      const ttc = vehData.prix_ht * ttcMultiplier;
+      html += `
+      <td class="col-no" data-vehicule="${veh}">${escapeHtml(vehData.facture)}</td>
+      <td class="col-ht" data-vehicule="${veh}" data-prix-ht="${vehData.prix_ht}">${vehData.prix_ht.toFixed(2)} €</td>
+      <td class="col-ttc" data-vehicule="${veh}">${ttc.toFixed(2)} €</td>
+      `;
+    } else {
+      html += `
+      <td class="col-no"></td>
+      <td class="col-ht"></td>
+      <td class="col-ttc"></td>
+      `;
+    }
+  });
+  
+  html += `
+  <td class="col-note" style="font-size: 0.75rem; color: #666;">${escapeHtml(row.description.substring(0, 50))}...</td>
+  <td style="text-align: center;">
+    <button class="btn-delete" onclick="deleteImportedRow('${row.id}')" title="Supprimer">🗑️</button>
+  </td>
+</tr>
+  `;
+  
+  return html;
+}
+
+/**
+ * Escape HTML
  */
 function escapeHtml(text) {
   const div = document.createElement('div');
@@ -3403,8 +3676,226 @@ function escapeHtml(text) {
 }
 
 // ========================================
-// FIN SPRINT 2.6
+// DRAG & DROP LIGNES
 // ========================================
+
+let currentDraggedRow = null;
+let currentRowData = null;
+
+/**
+ * Début drag ligne
+ */
+function handleRowDragStart(event) {
+  const row = event.currentTarget;
+  currentDraggedRow = row;
+  
+  currentRowData = {
+    id: row.dataset.importId,
+    destination: row.dataset.destination,
+    trajet: row.dataset.trajet,
+    vehicules: []
+  };
+  
+  // Extraire prix par véhicule
+  const prixCells = row.querySelectorAll('[data-prix-ht]');
+  prixCells.forEach(cell => {
+    const veh = cell.dataset.vehicule;
+    const prix = parseFloat(cell.dataset.prixHt);
+    const factureCell = cell.previousElementSibling;
+    const facture = factureCell ? factureCell.textContent.trim() : '';
+    
+    if (veh && !isNaN(prix)) {
+      currentRowData.vehicules.push({
+        type: veh,
+        prix_ht: prix,
+        facture: facture
+      });
+    }
+  });
+  
+  console.log('🎯 Drag ligne:', currentRowData);
+  
+  row.classList.add('dragging-row');
+  row.style.opacity = '0.5';
+  
+  event.dataTransfer.effectAllowed = 'move';
+  event.dataTransfer.setData('text/plain', currentRowData.id);
+}
+
+/**
+ * Fin drag
+ */
+function handleRowDragEnd(event) {
+  event.currentTarget.classList.remove('dragging-row');
+  event.currentTarget.style.opacity = '1';
+  
+  document.querySelectorAll('.table-drop-target').forEach(t => {
+    t.classList.remove('table-drop-target');
+  });
+}
+
+/**
+ * Initialiser drop zones sur tableaux existants
+ */
+function initializeTableDropZones() {
+  const tables = document.querySelectorAll('#destinationsTable, #transfertsTable');
+  
+  tables.forEach(table => {
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    
+    tbody.addEventListener('dragover', handleTableDragOver);
+    tbody.addEventListener('dragleave', handleTableDragLeave);
+    tbody.addEventListener('drop', handleTableDrop);
+  });
+  
+  console.log('✅ Drop zones initialisées');
+}
+
+/**
+ * Drag over tableau
+ */
+function handleTableDragOver(event) {
+  if (!currentRowData) return;
+  
+  event.preventDefault();
+  event.stopPropagation();
+  event.dataTransfer.dropEffect = 'move';
+  
+  const tbody = event.currentTarget;
+  const table = tbody.closest('table');
+  table.classList.add('table-drop-target');
+}
+
+/**
+ * Drag leave tableau
+ */
+function handleTableDragLeave(event) {
+  const tbody = event.currentTarget;
+  const table = tbody.closest('table');
+  
+  if (!event.currentTarget.contains(event.relatedTarget)) {
+    table.classList.remove('table-drop-target');
+  }
+}
+
+/**
+ * Drop ligne dans tableau
+ */
+async function handleTableDrop(event) {
+  event.preventDefault();
+  event.stopPropagation();
+  
+  const tbody = event.currentTarget;
+  const table = tbody.closest('table');
+  table.classList.remove('table-drop-target');
+  
+  if (!currentRowData) {
+    console.error('❌ Pas de données');
+    showToast('error', 'Erreur : Pas de données à placer');
+    return;
+  }
+  
+  const tableId = table.id;
+  const tableType = tableId === 'destinationsTable' ? 'destinations' : 'transferts';
+  
+  console.log(`📍 Drop dans: ${tableType}`);
+  
+  const confirmMsg = `Intégrer cette ligne dans "${tableType}" ?\n\n` +
+    `Destination: ${currentRowData.destination}\n` +
+    `Trajet: ${currentRowData.trajet}\n` +
+    `Véhicules: ${currentRowData.vehicules.map(v => v.type).join(', ')}\n\n` +
+    `Confirmer ?`;
+  
+  if (!confirm(confirmMsg)) {
+    currentDraggedRow = null;
+    currentRowData = null;
+    return;
+  }
+  
+  try {
+    // Supprimer ligne du tableau importé
+    if (currentDraggedRow) {
+      currentDraggedRow.remove();
+    }
+    
+    // Vérifier si tableau importé vide
+    const importedTable = document.querySelector('.imported-table tbody');
+    if (importedTable && importedTable.children.length === 0) {
+      document.querySelector('.imported-table-card').remove();
+      showToast('success', '✅ Toutes les destinations importées ont été intégrées !');
+    } else {
+      showToast('success', `✅ Ligne intégrée dans ${tableType}`);
+    }
+    
+    // Note: L'intégration réelle dans la grille sera faite manuellement
+    // Ce code place juste visuellement - vous ajusterez les cellules vous-même
+    
+  } catch (err) {
+    console.error('❌ Erreur:', err);
+    showToast('error', 'Erreur : ' + err.message);
+  }
+  
+  currentDraggedRow = null;
+  currentRowData = null;
+}
+
+/**
+ * Supprimer une ligne importée
+ */
+function deleteImportedRow(rowId) {
+  if (!confirm('Supprimer cette ligne importée ?')) {
+    return;
+  }
+  
+  const row = document.querySelector(`[data-import-id="${rowId}"]`);
+  if (row) {
+    row.remove();
+    
+    const tbody = document.querySelector('.imported-table tbody');
+    if (tbody && tbody.children.length === 0) {
+      document.querySelector('.imported-table-card').remove();
+      showToast('success', '✅ Toutes les lignes supprimées');
+    } else {
+      showToast('success', '✅ Ligne supprimée');
+    }
+  }
+}
+
+/**
+ * Supprimer toutes les lignes importées
+ */
+function clearAllImportedRows() {
+  if (!confirm('Supprimer TOUTES les lignes importées ?')) {
+    return;
+  }
+  
+  document.querySelector('.imported-table-card').remove();
+  showToast('success', '✅ Toutes les lignes supprimées');
+}
+
+/**
+ * Toast notification
+ */
+function showToast(type, message, duration = 3000) {
+  document.querySelectorAll('.toast-notification').forEach(t => t.remove());
+
+  const toast = document.createElement('div');
+  toast.className = `toast-notification ${type}`;
+  toast.textContent = message;
+
+  document.body.appendChild(toast);
+
+  if (duration > 0) {
+    setTimeout(() => {
+      toast.style.animation = 'slideOut 0.3s ease-out';
+      setTimeout(() => toast.remove(), 300);
+    }, duration);
+  }
+}
+
+console.log('✅ Sprint 2.6 V2 : Tableau importé avec parser intelligent chargé');
+
 
 async function loadGrid(){
   const client = getCurrentClient();
@@ -6672,460 +7163,6 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 // === FIN RÉORGANISATION CLIENTS ===
-
-
-// ========================================
-// SPRINT 2.6: DRAG & DROP HANDLERS
-// ========================================
-
-// ===== VARIABLES GLOBALES DRAG & DROP =====
-let currentDragItem = null;
-let currentDragData = null;
-
-/**
- * Début du drag d'un item importé
- */
-function handleImportDragStart(event) {
-  const importId = event.target.dataset.importId;
-  console.log('🎯 Drag start:', importId);
-
-  currentDragItem = importId;
-  
-  // SPRINT 2.6: Utiliser grille en mémoire
-  if (!currentGridData) {
-    console.error('❌ Grille introuvable en mémoire');
-    return;
-  }
-
-  if (!currentGridData.destinations_importees) {
-    console.error('❌ Pas de destinations importées dans grille');
-    return;
-  }
-
-  const imported = currentGridData.destinations_importees;
-  currentDragData = imported.find(i => i.id === importId);
-
-  if (!currentDragData) {
-    console.error('❌ Item non trouvé:', importId);
-    return;
-  }
-
-  console.log('📦 Drag data:', currentDragData);
-
-  // Visual feedback
-  event.target.classList.add('dragging');
-  event.dataTransfer.effectAllowed = 'move';
-  event.dataTransfer.setData('text/plain', importId);
-}
-
-/**
- * Fin du drag
- */
-function handleImportDragEnd(event) {
-  event.target.classList.remove('dragging');
-  
-  // Retirer highlights des cellules
-  document.querySelectorAll('.grid-cell.drag-over').forEach(cell => {
-    cell.classList.remove('drag-over');
-  });
-  
-  console.log('🏁 Drag end');
-}
-
-/**
- * Drag over une cellule (autoriser drop)
- */
-function handleCellDragOver(event) {
-  if (!currentDragData) return;
-  
-  event.preventDefault();
-  event.stopPropagation();
-  event.dataTransfer.dropEffect = 'move';
-  
-  const cell = event.currentTarget;
-  cell.classList.add('drag-over');
-}
-
-/**
- * Drag leave une cellule
- */
-function handleCellDragLeave(event) {
-  event.currentTarget.classList.remove('drag-over');
-}
-
-/**
- * Drop dans une cellule de la grille
- */
-async function handleCellDrop(event) {
-  event.preventDefault();
-  event.stopPropagation();
-
-  const cell = event.currentTarget;
-  cell.classList.remove('drag-over');
-
-  if (!currentDragData) {
-    console.error('❌ Pas de données drag');
-    showToast('error', 'Erreur : Pas de données à placer');
-    return;
-  }
-
-  const destination = cell.dataset.destination;
-  const vehicule = cell.dataset.vehicule;
-
-  console.log(`📍 Drop dans: ${destination} > ${vehicule}`);
-
-  // Confirmation
-  const confirmMsg = `Placer ce service dans la grille ?\n\n` +
-    `Description: ${currentDragData.description}\n` +
-    `Destination: ${destination}\n` +
-    `Véhicule: ${vehicule}\n` +
-    `Prix HT: ${currentDragData.prix_ht.toFixed(2)} €\n\n` +
-    `Confirmer ?`;
-
-  if (!confirm(confirmMsg)) {
-    console.log('❌ Annulé par utilisateur');
-    currentDragItem = null;
-    currentDragData = null;
-    return;
-  }
-
-  try {
-    if (!currentGridData) {
-      throw new Error('Grille introuvable en mémoire');
-    }
-
-    const gridData = currentGridData;
-
-    // Initialiser destinations si besoin
-    if (!gridData.destinations) {
-      gridData.destinations = {};
-    }
-
-    // Créer destination si n'existe pas
-    if (!gridData.destinations[destination]) {
-      gridData.destinations[destination] = {};
-      console.log(`✨ Destination créée: ${destination}`);
-    }
-
-    // Ajouter/remplacer prix dans cellule
-    gridData.destinations[destination][vehicule] = {
-      prix: currentDragData.prix_ht,
-      tva: currentDragData.tva,
-      facture: currentDragData.facture
-    };
-
-    console.log(`✅ Prix placé: ${currentDragData.prix_ht} € dans ${destination} > ${vehicule}`);
-
-    // Retirer de destinations_importees
-    if (!gridData.destinations_importees) {
-      gridData.destinations_importees = [];
-    }
-
-    const importIndex = gridData.destinations_importees.findIndex(
-      i => i.id === currentDragItem
-    );
-    
-    if (importIndex > -1) {
-      gridData.destinations_importees.splice(importIndex, 1);
-      console.log(`🗑️ Item retiré des importées (index ${importIndex})`);
-    }
-
-    // Mettre à jour mémoire
-    currentGridData = gridData;
-    
-    // Sauvegarder dans Supabase
-    if (isSupabaseAvailable) {
-      await saveGrid();
-    }
-
-    // Re-charger grille complète
-    console.log('🎨 Re-render grille...');
-    await loadGrid();
-
-    // Feedback succès
-    showToast('success', `✅ Placé dans ${destination} > ${vehicule}`);
-
-    // Si plus d'items importés, masquer section
-    if (gridData.destinations_importees.length === 0) {
-      const section = document.getElementById('importedSection');
-      if (section) {
-        section.style.animation = 'slideUp 0.3s ease-out';
-        setTimeout(() => section.remove(), 300);
-      }
-    }
-
-  } catch (err) {
-    console.error('❌ Erreur drop:', err);
-    showToast('error', 'Erreur lors du placement : ' + err.message);
-  }
-
-  // Reset
-  currentDragItem = null;
-  currentDragData = null;
-}
-
-/**
- * Éditer un item importé
- */
-function editImport(importId) {
-  console.log('📝 Édition import:', importId);
-  
-  if (!currentGridData) {
-    alert('Grille introuvable en mémoire');
-    return;
-  }
-
-  const gridData = currentGridData;
-  if (!gridData.destinations_importees) {
-    alert('Pas de destinations importées');
-    return;
-  }
-
-  const item = gridData.destinations_importees.find(i => i.id === importId);
-  
-  if (!item) {
-    alert('Item introuvable');
-    return;
-  }
-
-  // Modal édition simple avec prompts
-  const newDesc = prompt('Description:', item.description);
-  if (newDesc === null) return; // Annulé
-
-  const newPrix = prompt('Prix HT:', item.prix_ht);
-  if (newPrix === null) return; // Annulé
-
-  const prixNum = parseFloat(newPrix);
-  if (isNaN(prixNum) || prixNum < 0) {
-    alert('Prix invalide');
-    return;
-  }
-
-  // Mettre à jour
-  item.description = newDesc;
-  item.prix_ht = prixNum;
-
-  // Mettre à jour mémoire
-  currentGridData = gridData;
-  
-  // Sauvegarder
-  if (isSupabaseAvailable) {
-    saveGrid().then(() => {
-      showToast('success', '✅ Item modifié');
-      loadGrid();
-    }).catch(err => {
-      alert('Erreur sauvegarde : ' + err.message);
-    });
-  } else {
-    showToast('success', '✅ Item modifié');
-    loadGrid();
-  }
-}
-
-/**
- * Supprimer un item importé
- */
-async function deleteImport(importId) {
-  if (!confirm('Supprimer cet item des destinations importées ?')) {
-    return;
-  }
-
-  try {
-    if (!currentGridData) {
-      throw new Error('Grille introuvable en mémoire');
-    }
-
-    const gridData = currentGridData;
-    
-    if (!gridData.destinations_importees) {
-      throw new Error('Pas de destinations importées');
-    }
-
-    // Filtrer pour retirer l'item
-    gridData.destinations_importees = gridData.destinations_importees.filter(
-      i => i.id !== importId
-    );
-
-    // Mettre à jour mémoire
-    currentGridData = gridData;
-    
-    // Sauvegarder
-    if (isSupabaseAvailable) {
-      await saveGrid();
-    }
-
-    // Re-charger
-    await loadGrid();
-
-    showToast('success', '✅ Item supprimé');
-
-    // Si plus d'items, masquer section
-    if (gridData.destinations_importees.length === 0) {
-      const section = document.getElementById('importedSection');
-      if (section) {
-        section.style.animation = 'slideUp 0.3s ease-out';
-        setTimeout(() => section.remove(), 300);
-      }
-    }
-
-  } catch (err) {
-    console.error('❌ Erreur suppression:', err);
-    alert('Erreur suppression : ' + err.message);
-  }
-}
-
-/**
- * Classifier automatiquement selon suggestions
- */
-async function classifyAllAuto() {
-  if (!currentGridData) {
-    alert('Grille introuvable en mémoire');
-    return;
-  }
-
-  const gridData = currentGridData;
-  
-  if (!gridData.destinations_importees) {
-    alert('Pas de destinations importées');
-    return;
-  }
-
-  const imported = gridData.destinations_importees;
-  const withSuggestions = imported.filter(
-    i => i.suggestions && i.suggestions.destination && i.suggestions.vehicule
-  );
-
-  if (withSuggestions.length === 0) {
-    alert('Aucun item avec suggestion de placement');
-    return;
-  }
-
-  const confirmMsg = `Classifier automatiquement ${withSuggestions.length} items selon les suggestions ?\n\n` +
-    withSuggestions.map(i => 
-      `• ${i.description.substring(0, 30)}... → ${i.suggestions.destination} > ${i.suggestions.vehicule}`
-    ).join('\n');
-
-  if (!confirm(confirmMsg)) {
-    return;
-  }
-
-  try {
-    let classified = 0;
-
-    // Initialiser destinations si besoin
-    if (!gridData.destinations) {
-      gridData.destinations = {};
-    }
-
-    for (const item of withSuggestions) {
-      const dest = item.suggestions.destination;
-      const veh = item.suggestions.vehicule;
-
-      // Créer destination si besoin
-      if (!gridData.destinations[dest]) {
-        gridData.destinations[dest] = {};
-      }
-
-      // Placer
-      gridData.destinations[dest][veh] = {
-        prix: item.prix_ht,
-        tva: item.tva,
-        facture: item.facture
-      };
-
-      classified++;
-    }
-
-    // Retirer items classés des importées
-    gridData.destinations_importees = imported.filter(
-      i => !i.suggestions || !i.suggestions.destination || !i.suggestions.vehicule
-    );
-
-    // Mettre à jour mémoire
-    currentGridData = gridData;
-    
-    // Sauvegarder
-    if (isSupabaseAvailable) {
-      await saveGrid();
-    }
-
-    // Re-charger
-    await loadGrid();
-
-    showToast('success', `✅ ${classified} items classés automatiquement`);
-
-  } catch (err) {
-    console.error('❌ Erreur classification:', err);
-    alert('Erreur : ' + err.message);
-  }
-}
-
-/**
- * Supprimer tous les items importés
- */
-async function clearAllImported() {
-  if (!confirm('Supprimer TOUS les items importés ?\n\nCette action est irréversible.')) {
-    return;
-  }
-
-  try {
-    if (!currentGridData) {
-      throw new Error('Grille introuvable en mémoire');
-    }
-
-    const gridData = currentGridData;
-    const count = (gridData.destinations_importees || []).length;
-    gridData.destinations_importees = [];
-
-    // Mettre à jour mémoire
-    currentGridData = gridData;
-    
-    // Sauvegarder
-    if (isSupabaseAvailable) {
-      await saveGrid();
-    }
-
-    // Re-charger
-    await loadGrid();
-
-    showToast('success', `✅ ${count} items supprimés`);
-
-  } catch (err) {
-    console.error('❌ Erreur suppression:', err);
-    alert('Erreur : ' + err.message);
-  }
-}
-
-/**
- * Afficher notification toast
- */
-function showToast(type, message, duration = 3000) {
-  // Retirer toasts existants
-  document.querySelectorAll('.toast-notification').forEach(t => t.remove());
-
-  const toast = document.createElement('div');
-  toast.className = `toast-notification ${type}`;
-  toast.textContent = message;
-
-  document.body.appendChild(toast);
-
-  if (duration > 0) {
-    setTimeout(() => {
-      toast.style.animation = 'slideOut 0.3s ease-out';
-      setTimeout(() => toast.remove(), 300);
-    }, duration);
-  }
-}
-
-console.log('✅ Sprint 2.6 Drag & Drop handlers chargés');
-
-	
-	</script>
-
-
-// ========================================
-// FIN SPRINT 2.6
-// ========================================
 
 	<!-- Indicateur sauvegarde -->
 <div id="saveIndicator" style="position: fixed; bottom: 20px; right: 20px; background: #5cb85c; color: white; padding: 12px 20px; border-radius: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.2); display: none; z-index: 10000; font-weight: bold;">

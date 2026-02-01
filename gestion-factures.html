@@ -1049,6 +1049,174 @@
   
   <!-- Modal facture -->
   <script src="./modal-facture.js"></script>
+
+  /**
+ * ============================================================
+ * SYSTÈME DE SÉLECTION SERVICES - gestion-factures.html
+ * Permet de choisir quels services exporter vers la grille
+ * ============================================================
+ */
+
+// État de sélection
+let servicesSelection = new Set(); // Set des IDs sélectionnés
+
+/**
+ * Initialiser la sélection au chargement des services
+ */
+function initializeServiceSelection(services) {
+  servicesSelection.clear();
+  
+  // Par défaut : tout sélectionner
+  services.forEach((service, index) => {
+    const serviceId = `service-${index}`;
+    servicesSelection.add(serviceId);
+  });
+  
+  updateSelectionCounter();
+}
+
+/**
+ * Toggle sélection d'un service
+ */
+function toggleServiceSelection(serviceId) {
+  if (servicesSelection.has(serviceId)) {
+    servicesSelection.delete(serviceId);
+  } else {
+    servicesSelection.add(serviceId);
+  }
+  
+  updateSelectionCounter();
+  updateSelectAllButton();
+}
+
+/**
+ * Sélectionner/Désélectionner tout
+ */
+function toggleSelectAll() {
+  const allCheckboxes = document.querySelectorAll('.service-checkbox');
+  
+  if (servicesSelection.size === allCheckboxes.length) {
+    // Tout décocher
+    servicesSelection.clear();
+    allCheckboxes.forEach(cb => cb.checked = false);
+  } else {
+    // Tout cocher
+    servicesSelection.clear();
+    allCheckboxes.forEach(cb => {
+      servicesSelection.add(cb.dataset.serviceId);
+      cb.checked = true;
+    });
+  }
+  
+  updateSelectionCounter();
+  updateSelectAllButton();
+}
+
+/**
+ * Mettre à jour le compteur
+ */
+function updateSelectionCounter() {
+  const counter = document.getElementById('selectionCounter');
+  if (counter) {
+    const total = document.querySelectorAll('.service-checkbox').length;
+    const selected = servicesSelection.size;
+    counter.textContent = `${selected} / ${total} sélectionné(s)`;
+    
+    // Désactiver export si aucun sélectionné
+    const exportBtn = document.getElementById('btnExportToGrid');
+    if (exportBtn) {
+      exportBtn.disabled = selected === 0;
+    }
+  }
+}
+
+/**
+ * Mettre à jour le bouton "Tout sélectionner"
+ */
+function updateSelectAllButton() {
+  const btn = document.getElementById('btnToggleSelectAll');
+  if (!btn) return;
+  
+  const total = document.querySelectorAll('.service-checkbox').length;
+  const selected = servicesSelection.size;
+  
+  if (selected === total) {
+    btn.textContent = '❌ Tout désélectionner';
+    btn.classList.remove('select-all');
+    btn.classList.add('deselect-all');
+  } else {
+    btn.textContent = '✅ Tout sélectionner';
+    btn.classList.remove('deselect-all');
+    btn.classList.add('select-all');
+  }
+}
+
+/**
+ * Obtenir les services sélectionnés
+ */
+function getSelectedServices(allServices) {
+  const selected = [];
+  
+  allServices.forEach((service, index) => {
+    const serviceId = `service-${index}`;
+    if (servicesSelection.has(serviceId)) {
+      selected.push(service);
+    }
+  });
+  
+  return selected;
+}
+
+/**
+ * Rendu d'un service avec checkbox
+ */
+function renderServiceWithCheckbox(service, index) {
+  const serviceId = `service-${index}`;
+  const isChecked = servicesSelection.has(serviceId);
+  
+  // Calculer prix TTC
+  const prixHT = parseFloat(service.pu?.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0;
+  const tva = parseInt(service.tva?.match(/\d+/)?.[0]) || 10;
+  const prixTTC = prixHT * (1 + tva / 100);
+  
+  return `
+    <div class="service-row ${isChecked ? 'selected' : ''}" data-service-id="${serviceId}">
+      <div class="service-checkbox-container">
+        <input 
+          type="checkbox" 
+          class="service-checkbox" 
+          id="${serviceId}"
+          data-service-id="${serviceId}"
+          ${isChecked ? 'checked' : ''}
+          onchange="toggleServiceSelection('${serviceId}')"
+        >
+        <label for="${serviceId}" class="checkbox-label">
+          <span class="checkbox-custom"></span>
+        </label>
+      </div>
+      
+      <div class="service-content">
+        <div class="service-header">
+          <span class="service-type">${service.type || 'Service'}</span>
+          <span class="service-qty">Quantité: ${service.qty || 1}</span>
+        </div>
+        
+        <div class="service-desc">${service.desc || 'Description manquante'}</div>
+        
+        <div class="service-footer">
+          <span class="service-prix">
+            <strong>${prixHT.toFixed(2)} € HT</strong>
+            <span class="service-ttc">${prixTTC.toFixed(2)} € TTC</span>
+          </span>
+          <span class="service-tva">TVA ${tva}%</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+console.log('✅ Système de sélection services chargé');
+
   
   <!-- Main unifié -->
   <script src="./gestion-factures-main.js"></script>

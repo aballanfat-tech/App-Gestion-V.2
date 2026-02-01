@@ -3920,7 +3920,12 @@ async function loadGrid(){
         // SPRINT 2.6: Render section importées
         const container = document.getElementById('importedSectionContainer');
         if (container) {
-          container.innerHTML = renderImportedSection(cloudData);
+     container.innerHTML = renderImportedTable(cloudData);
+
+		// Initialiser drop zones APRÈS render
+		setTimeout(() => {
+  			initializeTableDropZones();
+			}, 100);
         }
         
         setStatus("☁️ Chargé depuis cloud " + client + " – " + year, false);
@@ -3952,7 +3957,12 @@ async function loadGrid(){
     // SPRINT 2.6: Render section importées
     const container = document.getElementById('importedSectionContainer');
     if (container) {
-      container.innerHTML = renderImportedSection(data);
+      container.innerHTML = renderImportedTable(data);
+
+	// Initialiser drop zones APRÈS render
+		setTimeout(() => {
+ 		 initializeTableDropZones();
+		}, 100);
     }
     
     setStatus("💾 Chargé depuis local " + client + " – " + year, false);

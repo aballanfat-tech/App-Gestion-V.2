@@ -10,6 +10,225 @@
   
   <!-- PDF.js -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+/* ============================================================
+   SYSTÈME DE SÉLECTION SERVICES
+   ============================================================ */
+
+/* Barre de contrôle sélection */
+.selection-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: linear-gradient(to right, #f8f9fa, #e9ecef);
+  padding: 12px 20px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.selection-counter {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+.selection-actions {
+  display: flex;
+  gap: 12px;
+}
+
+#btnToggleSelectAll {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+#btnToggleSelectAll:hover {
+  background: #5a6268;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+
+#btnToggleSelectAll.deselect-all {
+  background: #dc3545;
+}
+
+#btnToggleSelectAll.deselect-all:hover {
+  background: #c82333;
+}
+
+/* Service row */
+.service-row {
+  display: flex;
+  gap: 16px;
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 12px;
+  transition: all 0.2s;
+  cursor: pointer;
+}
+
+.service-row:hover {
+  border-color: #007bff;
+  box-shadow: 0 2px 8px rgba(0, 123, 255, 0.1);
+  transform: translateX(4px);
+}
+
+.service-row.selected {
+  background: linear-gradient(to right, #e7f3ff, #f8fbff);
+  border-color: #007bff;
+}
+
+/* Checkbox personnalisée */
+.service-checkbox-container {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.service-checkbox {
+  display: none;
+}
+
+.checkbox-label {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+
+.checkbox-custom {
+  width: 24px;
+  height: 24px;
+  border: 2px solid #6c757d;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  background: white;
+}
+
+.service-checkbox:checked + .checkbox-label .checkbox-custom {
+  background: #007bff;
+  border-color: #007bff;
+}
+
+.service-checkbox:checked + .checkbox-label .checkbox-custom::after {
+  content: '✓';
+  color: white;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.checkbox-label:hover .checkbox-custom {
+  border-color: #007bff;
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+/* Contenu service */
+.service-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.service-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.service-type {
+  background: #6c757d;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.service-qty {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.service-desc {
+  color: #212529;
+  line-height: 1.5;
+  font-size: 0.95rem;
+}
+
+.service-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 8px;
+  border-top: 1px solid #e9ecef;
+}
+
+.service-prix {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+}
+
+.service-prix strong {
+  font-size: 1.1rem;
+  color: #28a745;
+}
+
+.service-ttc {
+  color: #6c757d;
+  font-size: 0.9rem;
+}
+
+.service-tva {
+  background: #ffc107;
+  color: #212529;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+/* Export button disabled */
+#btnExportToGrid:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+#btnExportToGrid:disabled:hover {
+  background: #6c757d;
+  transform: none;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .selection-controls {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .service-row {
+    flex-direction: column;
+  }
+  
+  .service-checkbox-container {
+    align-self: flex-start;
+  }
+}
+
   
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }

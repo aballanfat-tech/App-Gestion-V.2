@@ -996,7 +996,24 @@
 
       <!-- Contenu onglets -->
       <div style="flex: 1; overflow-y: auto; max-height: 60vh;">
-        <div id="tab-edit" class="tab-content active"></div>
+        <div id="tab-edit" class="tab-content active">
+  <!-- Barre de contrôle sélection -->
+  <div class="selection-controls" id="selectionControlsBar" style="display: none; margin: 20px 24px 16px;">
+    <div class="selection-counter" id="selectionCounter">
+      0 / 0 sélectionné(s)
+    </div>
+    
+    <div class="selection-actions">
+      <button id="btnToggleSelectAll" class="btn" onclick="toggleSelectAll()">
+        ✅ Tout sélectionner
+      </button>
+    </div>
+  </div>
+  
+  <!-- Contenu services (généré dynamiquement) -->
+  <div id="servicesContainer"></div>
+</div>
+
         <div id="tab-table" class="tab-content" style="display: none;"></div>
         <div id="tab-text" class="tab-content" style="display: none;"></div>
         <div id="tab-debug" class="tab-content" style="display: none;"></div>

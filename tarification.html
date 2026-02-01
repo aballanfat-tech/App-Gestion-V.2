@@ -1031,6 +1031,213 @@ body.hide-facture-columns .col-no {
   }
 }
 /* ===== FIN SECTION DESTINATIONS IMPORTÉES ===== */
+
+	/* ============================================================
+   SPRINT 2.6 V2 : TABLEAU DESTINATIONS IMPORTÉES
+   ============================================================ */
+
+/* Carte tableau importé */
+.imported-table-card {
+  background: linear-gradient(135deg, #fff3cd 0%, #ffe8a1 100%);
+  border: 3px solid #ffc107;
+  margin-bottom: 30px;
+  animation: slideDown 0.4s ease-out;
+}
+
+.imported-table-info {
+  background: rgba(255, 152, 0, 0.15);
+  border-left: 4px solid #ff9800;
+  padding: 12px 16px;
+  margin: 10px 0 16px 0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #e65100;
+  font-weight: 500;
+}
+
+/* Tableau importé */
+.imported-table {
+  background: white;
+  border: 2px solid #ffc107;
+}
+
+.imported-table thead {
+  background: linear-gradient(to bottom, #fff9e6, #ffe8a1);
+}
+
+.imported-table thead th {
+  border-color: #ffb74d;
+  color: #f57c00;
+}
+
+.imported-table tbody tr {
+  background: white;
+  transition: all 0.2s ease;
+}
+
+.imported-table tbody tr:hover {
+  background: #fffbf0;
+  transform: translateX(2px);
+  box-shadow: 0 2px 8px rgba(255, 193, 7, 0.2);
+}
+
+/* Drag handle cellule */
+.drag-handle-cell {
+  cursor: grab;
+  user-select: none;
+  font-size: 1.2rem;
+  color: #ff9800;
+  font-weight: bold;
+}
+
+.drag-handle-cell:active {
+  cursor: grabbing;
+}
+
+/* Colonne drag handle */
+th.drag-col {
+  width: 40px;
+  min-width: 40px;
+  text-align: center;
+  background: linear-gradient(to bottom, #ffe8a1, #ffd54f);
+}
+
+/* Ligne en cours de drag */
+.imported-row.dragging-row {
+  opacity: 0.6 !important;
+  transform: rotate(1deg) scale(0.98);
+  box-shadow: 0 8px 24px rgba(255, 152, 0, 0.4);
+  cursor: grabbing;
+}
+
+/* Drop zone active sur tableau */
+.table-drop-target {
+  outline: 3px dashed #4caf50;
+  outline-offset: 4px;
+  background: rgba(76, 175, 80, 0.05);
+  animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    outline-color: #4caf50;
+  }
+  50% {
+    outline-color: #81c784;
+  }
+}
+
+/* Highlight drop zone */
+table.table-drop-target tbody {
+  background: rgba(76, 175, 80, 0.08);
+}
+
+/* Actions bas de tableau */
+.imported-table-actions {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 2px dashed rgba(255, 193, 7, 0.3);
+  text-align: center;
+}
+
+.imported-table-actions .btn {
+  background: #ef4444;
+  color: white;
+  border-color: #dc2626;
+  padding: 8px 20px;
+  font-weight: 600;
+}
+
+.imported-table-actions .btn:hover {
+  background: #dc2626;
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+}
+
+/* Bouton supprimer ligne */
+.btn-delete {
+  background: none;
+  border: none;
+  font-size: 1.3rem;
+  cursor: pointer;
+  opacity: 0.5;
+  transition: all 0.2s;
+  padding: 4px;
+}
+
+.btn-delete:hover {
+  opacity: 1;
+  transform: scale(1.2);
+}
+
+/* Animation apparition */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Toast notifications */
+.toast-notification {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  padding: 16px 24px;
+  background: #48bb78;
+  color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+  z-index: 10000;
+  animation: slideInRight 0.3s ease-out;
+  font-weight: 500;
+}
+
+.toast-notification.error {
+  background: #f56565;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOut {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .imported-table-info {
+    font-size: 0.75rem;
+    padding: 8px 12px;
+  }
+  
+  .imported-table {
+    font-size: 0.7rem;
+  }
+  
+  .drag-handle-cell {
+    font-size: 1rem;
+  }
+}
+
 	
 </style>
 

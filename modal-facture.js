@@ -8,6 +8,9 @@
 (function(window) {
   'use strict';
 
+  // Variable globale pour sélection services
+  window.servicesSelection = window.servicesSelection || new Set();
+
   let currentFactureId = null;
   let currentData = null;
 
@@ -154,10 +157,6 @@
 
         <h3 style="margin: 24px 0 16px;">📋 Services / Prestations</h3>
         
-        <div id="servicesTable">
-          ${renderServicesTable(donneesBrutes.table)}
-        </div>
-
         <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
           <button class="btn" onclick="ModalFacture.close()">
             ❌ Annuler
@@ -173,6 +172,52 @@
         </div>
       </div>
     `;
+    `;
+    
+    // ===== SYSTÈME SÉLECTION SERVICES =====
+    const servicesContainer = document.getElementById('servicesContainer');
+    if (servicesContainer && donneesBrutes.table && donneesBrutes.table.length > 0) {
+      // Extraire tous les services de toutes les pages
+      const allServices = [];
+      donneesBrutes.table.forEach(page => {
+        if (page.services && Array.isArray(page.services)) {
+          page.services.forEach(service => allServices.push(service));
+        }
+      });
+      
+      console.log(`📋 ${allServices.length} services extraits`);
+      
+      // Initialiser sélection
+      if (typeof initializeServiceSelection === 'function') {
+        initializeServiceSelection(allServices);
+      } else {
+        console.warn('⚠️ initializeServiceSelection non disponible');
+      }
+      
+      // Générer HTML avec checkboxes
+      let servicesHTML = '';
+      allServices.forEach((service, index) => {
+        if (typeof renderServiceWithCheckbox === 'function') {
+          servicesHTML += renderServiceWithCheckbox(service, index);
+        } else {
+          // Fallback si fonction pas dispo
+          servicesHTML += `<div class="service-item">${service.desc || service.description}</div>`;
+        }
+      });
+      
+      servicesContainer.innerHTML = servicesHTML;
+      
+      // Afficher barre de contrôle
+      const controlsBar = document.getElementById('selectionControlsBar');
+      if (controlsBar) {
+        controlsBar.style.display = 'flex';
+      }
+      
+      console.log('✅ Services affichés avec sélection');
+    } else {
+      console.log('ℹ️ Pas de services à afficher');
+    }
+  }  // ← Fin de renderEditTab
   }
 
   function renderServicesTable(tableData) {
@@ -430,8 +475,35 @@
       const gridData = grille.data || { destinations: {}, destinations_importees: [] };
       gridData.destinations_importees = gridData.destinations_importees || [];
 
-      // 6. Ajouter services dans destinations_importees
-      services.forEach(service => {
+      // 6. Filtrer services sélectionnés uniquement
+      const servicesSelected = [];
+      
+      // Récupérer sélection depuis variable globale
+      if (typeof window.servicesSelection !== 'undefined' && window.servicesSelection.size > 0) {
+        console.log(`🔍 Sélection active: ${window.servicesSelection.size} services`);
+        
+        services.forEach((service, index) => {
+          const serviceId = `service-${index}`;
+          if (window.servicesSelection.has(serviceId)) {
+            servicesSelected.push(service);
+          }
+        });
+      } else {
+        console.warn('⚠️ Pas de sélection active, export de tous les services');
+        // Sécurité : si pas de sélection, prendre tous
+        servicesSelected.push(...services);
+      }
+      
+      // Vérifier qu'au moins 1 service est sélectionné
+      if (servicesSelected.length === 0) {
+        alert('❌ Aucun service sélectionné.\n\nVeuillez cocher au moins un service à exporter.');
+        return;
+      }
+      
+      console.log(`📤 Export de ${servicesSelected.length} / ${services.length} service(s) sélectionné(s)`);
+      
+      // 7. Ajouter UNIQUEMENT les services sélectionnés dans destinations_importees
+      servicesSelected.forEach(service => {
         gridData.destinations_importees.push({
           id: `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
           description: service.description_orig,
@@ -448,7 +520,6 @@
           }
         });
       });
-
       console.log('💾 Sauvegarde grille avec imports...');
 
       // 7. Sauvegarder grille

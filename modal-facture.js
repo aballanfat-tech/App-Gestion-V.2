@@ -218,7 +218,6 @@
       console.log('ℹ️ Pas de services à afficher');
     }
   }  // ← Fin de renderEditTab
-  }
 
   function renderServicesTable(tableData) {
     if (!tableData || !Array.isArray(tableData) || tableData.length === 0) {

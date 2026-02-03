@@ -157,6 +157,8 @@
 
         <h3 style="margin: 24px 0 16px;">[SERVICES] Services / Prestations</h3>
 
+        <div id="servicesContainer"></div>
+
          <!-- Container pour services avec checkboxes -->
         <div id="servicesContainer"></div>
         
@@ -417,154 +419,263 @@
     console.log('[OK] ModalFacture initialisé');
   }
 
-  // ===== VALIDATION & EXPORT =====
-  async function validateAndExport() {
-    console.log('[OK] Validation & Export facture:', currentFactureId);
+// ============================================================
+// NOUVEAU CODE pour validateAndExport()
+// Remplace lignes 418-560 environ
+// ============================================================
 
-    try {
-      // 1. Récupérer queue_id depuis facture_id
-      const { data: queue, error: queueError } = await window.supabaseClient
-        .from('factures_export_queue')
-        .select('*')
-        .eq('facture_id', currentFactureId)
-        .single();
+async function validateAndExport() {
+  console.log('[OK] Validation & Export facture:', currentFactureId);
 
-      if (queueError || !queue) {
-        alert('[ERROR] Cette facture n\'est pas dans la file d\'export');
-        return;
-      }
+  try {
+    // 1. Récupérer queue_id depuis facture_id
+    const { data: queue, error: queueError } = await window.supabaseClient
+      .from('factures_export_queue')
+      .select('*')
+      .eq('facture_id', currentFactureId)
+      .single();
 
-      // 2. Récupérer services validés
-      const { data: services, error: servicesError } = await window.supabaseClient
-        .from('services_mapping')
-        .select('*')
-        .eq('queue_id', queue.id);
-
-      if (servicesError) throw servicesError;
-
-      if (!services || services.length === 0) {
-        alert('[ERROR] Aucun service trouvé pour cette facture');
-        return;
-      }
-
-      console.log(`[SERVICES] ${services.length} services à exporter`);
-
-      // 3. Ouvrir modal sélection client/année
-      const selection = await showClientYearSelector(queue.client_detecte, queue.annee);
-      
-      if (!selection) {
-        console.log('[ERROR] Export annulé par utilisateur');
-        return;
-      }
-
-      const { clientId, year } = selection;
-
-      // 4. Charger grille
-      const { data: grille, error: grilleError } = await window.supabaseClient
-        .from('grilles')
-        .select('*')
-        .eq('client_id', clientId)
-        .eq('year', year)
-        .single();
-
-      if (grilleError || !grille) {
-        alert('[ERROR] Grille introuvable pour ce client/année');
-        return;
-      }
-
-      // 5. Préparer données
-      const gridData = grille.data || { destinations: {}, destinations_importees: [] };
-      gridData.destinations_importees = gridData.destinations_importees || [];
-
-      // 6. Filtrer services sélectionnés uniquement
-      const servicesSelected = [];
-      
-      // Récupérer sélection depuis variable globale
-      if (typeof window.servicesSelection !== 'undefined' && window.servicesSelection.size > 0) {
-        console.log(`[SEARCH] Sélection active: ${window.servicesSelection.size} services`);
-        
-        services.forEach((service, index) => {
-          const serviceId = `service-${index}`;
-          if (window.servicesSelection.has(serviceId)) {
-            servicesSelected.push(service);
-          }
-        });
-      } else {
-        console.warn('[WARN] Pas de sélection active, export de tous les services');
-        // Sécurité : si pas de sélection, prendre tous
-        servicesSelected.push(...services);
-      }
-      
-      // Vérifier qu'au moins 1 service est sélectionné
-      if (servicesSelected.length === 0) {
-        alert('[ERROR] Aucun service sélectionné.\n\nVeuillez cocher au moins un service à exporter.');
-        return;
-      }
-      
-      console.log(`[EXPORT] Export de ${servicesSelected.length} / ${services.length} service(s) sélectionné(s)`);
-      
-      // 7. Ajouter UNIQUEMENT les services sélectionnés dans destinations_importees
-      servicesSelected.forEach(service => {
-        gridData.destinations_importees.push({
-          id: `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-          description: service.description_orig,
-          prix_ht: parseFloat(service.prix_ht) || 0,
-          quantite: service.quantite || 1,
-          tva: service.tva || 10,
-          facture: currentData.fichier_nom,
-          facture_id: currentFactureId,
-          date_import: new Date().toISOString(),
-          suggestions: {
-            destination: service.destination_detectee || service.destination_validee,
-            vehicule: service.vehicule_detecte || service.vehicule_valide,
-            confidence: service.confidence_score || 0
-          }
-        });
-      });
-      
-      console.log('[SAVE] Sauvegarde grille avec imports...');
-
-      // 7. Sauvegarder grille
-      const { error: updateError } = await window.supabaseClient
-        .from('grilles')
-        .update({ 
-          data: gridData,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', grille.id);
-
-      if (updateError) throw updateError;
-
-      // 8. Marquer queue comme exportée
-      await window.supabaseClient
-        .from('factures_export_queue')
-        .update({ 
-          status: 'exported',
-          exported_at: new Date().toISOString()
-        })
-        .eq('id', queue.id);
-
-      console.log('[OK] Export terminé !');
-
-      // 9. Fermer modal
-      closeFactureModal();
-
-      // 10. Confirmation + proposition ouvrir grille
-      const message = `[OK] ${services.length} services exportés vers la grille !\n\nOuvrir la grille tarifaire maintenant ?`;
-      
-      if (confirm(message)) {
-        window.location.href = `tarification.html?client=${clientId}&year=${year}`;
-      } else {
-        // Recharger liste pour montrer status "exportée"
-        if (window.loadQueue) window.loadQueue();
-      }
-
-    } catch (err) {
-      console.error('[ERROR] Erreur export:', err);
-      alert('Erreur lors de l\'export : ' + err.message);
+    if (queueError || !queue) {
+      alert('[ERROR] Cette facture n\'est pas dans la file d\'export');
+      return;
     }
-  }
 
+    // 2. Récupérer services validés
+    const { data: services, error: servicesError } = await window.supabaseClient
+      .from('services_mapping')
+      .select('*')
+      .eq('queue_id', queue.id);
+
+    if (servicesError) throw servicesError;
+
+    if (!services || services.length === 0) {
+      alert('[ERROR] Aucun service trouvé pour cette facture');
+      return;
+    }
+
+    console.log(`[SERVICES] ${services.length} services à exporter`);
+
+    // 3. EXTRACTION AUTOMATIQUE CLIENT ET ANNÉE
+    
+    // Extraire nom client depuis queue ou données brutes
+    const clientNom = queue.client_detecte || 
+                      currentData?.donnees_brutes?.fields?.client_nom || 
+                      'Client Inconnu';
+    
+    console.log(`[INFO] Client détecté: ${clientNom}`);
+    
+    // Extraire année depuis la date du premier service
+    let year = new Date().getFullYear(); // Par défaut : année actuelle
+    
+    // Chercher dans les services la première date valide
+    if (currentData?.donnees_brutes?.table && currentData.donnees_brutes.table.length > 0) {
+      for (const page of currentData.donnees_brutes.table) {
+        if (page.services && page.services.length > 0) {
+          for (const service of page.services) {
+            if (service.date) {
+              // Extraire l'année depuis la date du service
+              // Format peut être : "01/02/2025" ou "2025-02-01"
+              const dateMatch = service.date.match(/(\d{4})/);
+              if (dateMatch) {
+                year = parseInt(dateMatch[1]);
+                console.log(`[INFO] Année extraite depuis service: ${year}`);
+                break;
+              }
+            }
+          }
+          if (year !== new Date().getFullYear()) break;
+        }
+      }
+    }
+    
+    // Si pas trouvé dans services, essayer depuis queue
+    if (year === new Date().getFullYear() && queue.annee) {
+      year = queue.annee;
+    }
+    
+    console.log(`[INFO] Année utilisée: ${year}`);
+
+    // 4. CRÉER OU RÉCUPÉRER CLIENT
+    
+    // Chercher client existant
+    let { data: existingClient, error: clientSearchError } = await window.supabaseClient
+      .from('clients')
+      .select('*')
+      .eq('nom', clientNom)
+      .single();
+    
+    let clientId;
+    
+    if (clientSearchError && clientSearchError.code === 'PGRST116') {
+      // Client pas trouvé → Créer nouveau client
+      console.log(`[INFO] Client "${clientNom}" n'existe pas, création...`);
+      
+      const { data: newClient, error: createError } = await window.supabaseClient
+        .from('clients')
+        .insert([{
+          nom: clientNom,
+          actif: true,
+          created_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (createError) {
+        console.error('[ERROR] Erreur création client:', createError);
+        alert(`[ERROR] Impossible de créer le client "${clientNom}"`);
+        return;
+      }
+      
+      clientId = newClient.id;
+      console.log(`[OK] Client créé avec ID: ${clientId}`);
+      
+    } else if (clientSearchError) {
+      console.error('[ERROR] Erreur recherche client:', clientSearchError);
+      alert('[ERROR] Erreur lors de la recherche du client');
+      return;
+    } else {
+      // Client trouvé
+      clientId = existingClient.id;
+      console.log(`[OK] Client existant trouvé, ID: ${clientId}`);
+    }
+
+    // 5. CRÉER OU RÉCUPÉRER GRILLE
+
+    // Chercher grille existante pour ce client + année
+    let { data: grille, error: grilleError } = await window.supabaseClient
+      .from('grilles')
+      .select('*')
+      .eq('client_id', clientId)
+      .eq('year', year)
+      .single();
+
+    if (grilleError && grilleError.code === 'PGRST116') {
+      // Grille pas trouvée → Créer nouvelle grille
+      console.log(`[INFO] Grille ${year} pour client ${clientNom} n'existe pas, création...`);
+      
+      const { data: newGrille, error: createGrilleError } = await window.supabaseClient
+        .from('grilles')
+        .insert([{
+          client_id: clientId,
+          year: year,
+          data: {
+            destinations: {},
+            destinations_importees: []
+          },
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        }])
+        .select()
+        .single();
+      
+      if (createGrilleError) {
+        console.error('[ERROR] Erreur création grille:', createGrilleError);
+        alert(`[ERROR] Impossible de créer la grille ${year} pour ${clientNom}`);
+        return;
+      }
+      
+      grille = newGrille;
+      console.log(`[OK] Grille ${year} créée`);
+      
+    } else if (grilleError) {
+      console.error('[ERROR] Erreur recherche grille:', grilleError);
+      alert('[ERROR] Erreur lors de la recherche de la grille');
+      return;
+    } else {
+      console.log(`[OK] Grille ${year} existante trouvée`);
+    }
+
+    // 6. Préparer données
+    const gridData = grille.data || { destinations: {}, destinations_importees: [] };
+    gridData.destinations_importees = gridData.destinations_importees || [];
+
+    // 7. Filtrer services sélectionnés uniquement
+    const servicesSelected = [];
+    
+    // Récupérer sélection depuis variable globale
+    if (typeof window.servicesSelection !== 'undefined' && window.servicesSelection.size > 0) {
+      console.log(`[SEARCH] Sélection active: ${window.servicesSelection.size} services`);
+      
+      services.forEach((service, index) => {
+        const serviceId = `service-${index}`;
+        if (window.servicesSelection.has(serviceId)) {
+          servicesSelected.push(service);
+        }
+      });
+    } else {
+      console.warn('[WARN] Pas de sélection active, export de tous les services');
+      // Sécurité : si pas de sélection, prendre tous
+      servicesSelected.push(...services);
+    }
+    
+    // Vérifier qu'au moins 1 service est sélectionné
+    if (servicesSelected.length === 0) {
+      alert('[ERROR] Aucun service sélectionné.\n\nVeuillez cocher au moins un service à exporter.');
+      return;
+    }
+    
+    console.log(`[EXPORT] Export de ${servicesSelected.length} / ${services.length} service(s) sélectionné(s)`);
+    
+    // 8. Ajouter UNIQUEMENT les services sélectionnés dans destinations_importees
+    servicesSelected.forEach(service => {
+      gridData.destinations_importees.push({
+        id: `import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        description: service.description_orig,
+        prix_ht: parseFloat(service.prix_ht) || 0,
+        quantite: service.quantite || 1,
+        tva: service.tva || 10,
+        facture: currentData.fichier_nom,
+        facture_id: currentFactureId,
+        date_import: new Date().toISOString(),
+        suggestions: {
+          destination: service.destination_detectee || service.destination_validee,
+          vehicule: service.vehicule_detecte || service.vehicule_valide,
+          confidence: service.confidence_score || 0
+        }
+      });
+    });
+
+    // 9. Sauvegarder grille mise à jour
+    const { error: updateError } = await window.supabaseClient
+      .from('grilles')
+      .update({
+        data: gridData,
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', grille.id);
+
+    if (updateError) throw updateError;
+
+    // 10. Marquer facture comme exportée
+    await window.supabaseClient
+      .from('factures_export_queue')
+      .update({
+        statut: 'exported',
+        updated_at: new Date().toISOString()
+      })
+      .eq('id', queue.id);
+
+    console.log('[OK] Export terminé !');
+
+    // 11. Confirmation et redirection
+    const message = `[OK] ${servicesSelected.length} service(s) exporté(s) vers la grille ${year} de ${clientNom} !\n\nOuvrir la grille tarifaire maintenant ?`;
+    
+    if (confirm(message)) {
+      // Rediriger vers tarification.html avec client_id et year
+      window.location.href = `tarification.html?client_id=${clientId}&year=${year}`;
+    } else {
+      // Fermer modale et rafraîchir liste
+      closeFactureModal();
+      if (typeof window.loadFacturesQueue === 'function') {
+        window.loadFacturesQueue();
+      }
+    }
+
+  } catch (err) {
+    console.error('[ERROR] Erreur export:', err);
+    alert('[ERROR] Erreur lors de l\'export: ' + err.message);
+  }
+}
   // Modal sélection client/année
   async function showClientYearSelector(detectedClient, detectedYear) {
     return new Promise((resolve) => {

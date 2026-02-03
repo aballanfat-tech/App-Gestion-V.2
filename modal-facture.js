@@ -520,6 +520,7 @@
           }
         });
       });
+      
       console.log('💾 Sauvegarde grille avec imports...');
 
       // 7. Sauvegarder grille

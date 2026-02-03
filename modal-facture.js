@@ -501,7 +501,7 @@ async function validateAndExport() {
     let { data: existingClient, error: clientSearchError } = await window.supabaseClient
       .from('clients')
       .select('*')
-      .eq('nom', clientNom)
+      .eq('name', clientNom)
       .single();
     
     let clientId;
@@ -513,7 +513,7 @@ async function validateAndExport() {
       const { data: newClient, error: createError } = await window.supabaseClient
         .from('clients')
         .insert([{
-          nom: clientNom,
+          name: clientNom,
           actif: true,
           created_at: new Date().toISOString()
         }])

@@ -16,7 +16,7 @@
 
   // ===== OUVRIR MODALE =====
   async function openFactureModal(factureId) {
-    console.log('📄 Ouverture modale facture:', factureId);
+    console.log('[DOC] Ouverture modale facture:', factureId);
     
     currentFactureId = factureId;
 
@@ -24,7 +24,7 @@
     const overlay = document.getElementById('modalOverlay');
 
     if (!modal || !overlay) {
-      console.error('❌ Éléments modale introuvables');
+      console.error('[ERROR] Éléments modale introuvables');
       return;
     }
 
@@ -71,7 +71,7 @@
       renderFactureModal(data);
 
     } catch (err) {
-      console.error('❌ Erreur chargement facture:', err);
+      console.error('[ERROR] Erreur chargement facture:', err);
       alert('Erreur chargement: ' + err.message);
       closeFactureModal();
     } finally {
@@ -81,26 +81,26 @@
 
   // ===== RENDU MODALE =====
   function renderFactureModal(facture) {
-    console.log('🎨 Rendu modal, données facture:', facture);
+    console.log('[RENDER] Rendu modal, données facture:', facture);
     
     // Titre
     document.getElementById('modalTitle').textContent = facture.fichier_nom || 'Facture';
 
     // Onglets - Rendre tous les onglets
-    console.log('📝 Rendu onglet Édition...');
+    console.log('[EDIT] Rendu onglet Édition...');
     renderEditTab(facture);
     
-    console.log('📊 Rendu onglet Tableau...');
+    console.log('[DATA] Rendu onglet Tableau...');
     renderTableTab(facture);
     
-    console.log('📄 Rendu onglet Texte...');
+    console.log('[DOC] Rendu onglet Texte...');
     renderTextTab(facture);
     
-    console.log('🐛 Rendu onglet Debug...');
+    console.log('[DEBUG] Rendu onglet Debug...');
     renderDebugTab(facture);
 
     // Activer premier onglet
-    console.log('✅ Activation onglet Édition');
+    console.log('[OK] Activation onglet Édition');
     activateTab('edit');
   }
 
@@ -109,19 +109,19 @@
     const container = document.getElementById('tab-edit');  // ID avec tiret
     
     if (!container) {
-      console.error('❌ Élément tab-edit introuvable');
+      console.error('[ERROR] Élément tab-edit introuvable');
       return;
     }
     
     const donneesBrutes = facture.donnees_brutes || {};
     const fields = donneesBrutes.fields || {};
 
-    console.log('📝 Données fields:', fields);
-    console.log('📊 Données table:', donneesBrutes.table);
+    console.log('[EDIT] Données fields:', fields);
+    console.log('[DATA] Données table:', donneesBrutes.table);
 
     container.innerHTML = `
       <div style="padding: 20px;">
-        <h3 style="margin-bottom: 16px;">📝 Informations Facture</h3>
+        <h3 style="margin-bottom: 16px;">[EDIT] Informations Facture</h3>
         
         <div style="display: grid; gap: 16px;">
           <div>
@@ -155,11 +155,11 @@
           </div>
         </div>
 
-        <h3 style="margin: 24px 0 16px;">📋 Services / Prestations</h3>
+        <h3 style="margin: 24px 0 16px;">[SERVICES] Services / Prestations</h3>
         
         <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
           <button class="btn" onclick="ModalFacture.close()">
-            ❌ Annuler
+            [ERROR] Annuler
           </button>
           <button class="btn success" onclick="ModalFacture.validateAndExport()" style="
             background: var(--success);
@@ -167,11 +167,10 @@
             border-color: var(--success);
             font-weight: 600;
           ">
-            ✅ Valider & Exporter vers Grille
+            [OK] Valider & Exporter vers Grille
           </button>
         </div>
       </div>
-    `;
     `;
     
     // ===== SYSTÈME SÉLECTION SERVICES =====
@@ -185,13 +184,13 @@
         }
       });
       
-      console.log(`📋 ${allServices.length} services extraits`);
+      console.log(`[SERVICES] ${allServices.length} services extraits`);
       
       // Initialiser sélection
       if (typeof initializeServiceSelection === 'function') {
         initializeServiceSelection(allServices);
       } else {
-        console.warn('⚠️ initializeServiceSelection non disponible');
+        console.warn('[WARN] initializeServiceSelection non disponible');
       }
       
       // Générer HTML avec checkboxes
@@ -213,9 +212,9 @@
         controlsBar.style.display = 'flex';
       }
       
-      console.log('✅ Services affichés avec sélection');
+      console.log('[OK] Services affichés avec sélection');
     } else {
-      console.log('ℹ️ Pas de services à afficher');
+      console.log('[INFO] Pas de services à afficher');
     }
   }  // ← Fin de renderEditTab
 
@@ -263,13 +262,13 @@
     const container = document.getElementById('tab-table');  // ID avec tiret
     
     if (!container) {
-      console.error('❌ Élément tab-table introuvable');
+      console.error('[ERROR] Élément tab-table introuvable');
       return;
     }
     
     container.innerHTML = `
       <div style="padding: 20px;">
-        <h3 style="margin-bottom: 16px;">📊 Tableau Extrait</h3>
+        <h3 style="margin-bottom: 16px;">[DATA] Tableau Extrait</h3>
         ${renderServicesTable(facture.donnees_brutes?.table)}
       </div>
     `;
@@ -280,7 +279,7 @@
     const container = document.getElementById('tab-text');  // ID avec tiret
     
     if (!container) {
-      console.error('❌ Élément tab-text introuvable');
+      console.error('[ERROR] Élément tab-text introuvable');
       return;
     }
     
@@ -288,7 +287,7 @@
 
     container.innerHTML = `
       <div style="padding: 20px;">
-        <h3 style="margin-bottom: 16px;">📄 Texte OCR Brut</h3>
+        <h3 style="margin-bottom: 16px;">[DOC] Texte OCR Brut</h3>
         <pre style="
           background: #f7fafc; 
           padding: 16px; 
@@ -310,7 +309,7 @@
     const container = document.getElementById('tab-debug');  // ID avec tiret
     
     if (!container) {
-      console.error('❌ Élément tab-debug introuvable');
+      console.error('[ERROR] Élément tab-debug introuvable');
       return;
     }
     
@@ -324,7 +323,7 @@
 
     container.innerHTML = `
       <div style="padding: 20px;">
-        <h3 style="margin-bottom: 16px;">🐛 Debug JSON</h3>
+        <h3 style="margin-bottom: 16px;">[DEBUG] Debug JSON</h3>
         <pre style="
           background: #1a202c; 
           color: #48bb78;
@@ -344,7 +343,7 @@
 
   // ===== GESTION ONGLETS =====
   function activateTab(tabName) {
-    console.log('🔄 Activation onglet:', tabName);
+    console.log('[RELOAD] Activation onglet:', tabName);
     
     // Désactiver tous les boutons onglets
     document.querySelectorAll('.tab-btn').forEach(btn => {
@@ -361,9 +360,9 @@
     const activeBtn = document.querySelector(`[data-tab="${tabName}"]`);
     if (activeBtn) {
       activeBtn.classList.add('active');
-      console.log('✅ Bouton activé:', tabName);
+      console.log('[OK] Bouton activé:', tabName);
     } else {
-      console.error('❌ Bouton introuvable:', tabName);
+      console.error('[ERROR] Bouton introuvable:', tabName);
     }
 
     // Afficher le contenu correspondant
@@ -371,20 +370,20 @@
     if (activeContent) {
       activeContent.style.display = 'block';
       activeContent.classList.add('active');
-      console.log('✅ Contenu affiché:', tabName);
+      console.log('[OK] Contenu affiché:', tabName);
     } else {
-      console.error('❌ Contenu introuvable:', tabName);
+      console.error('[ERROR] Contenu introuvable:', tabName);
     }
   }
 
   // Setup listeners onglets
   function setupTabListeners() {
     const buttons = document.querySelectorAll('[data-tab]');
-    console.log('🎯 Setup listeners onglets, boutons trouvés:', buttons.length);
+    console.log('[TARGET] Setup listeners onglets, boutons trouvés:', buttons.length);
     
     buttons.forEach(btn => {
       const tabName = btn.getAttribute('data-tab');
-      console.log('📌 Listener ajouté sur onglet:', tabName);
+      console.log('[PIN] Listener ajouté sur onglet:', tabName);
       
       btn.addEventListener('click', () => {
         console.log('🖱️ Clic onglet:', tabName);
@@ -412,12 +411,12 @@
   // ===== INIT =====
   function init() {
     setupTabListeners();
-    console.log('✅ ModalFacture initialisé');
+    console.log('[OK] ModalFacture initialisé');
   }
 
   // ===== VALIDATION & EXPORT =====
   async function validateAndExport() {
-    console.log('✅ Validation & Export facture:', currentFactureId);
+    console.log('[OK] Validation & Export facture:', currentFactureId);
 
     try {
       // 1. Récupérer queue_id depuis facture_id
@@ -428,7 +427,7 @@
         .single();
 
       if (queueError || !queue) {
-        alert('❌ Cette facture n\'est pas dans la file d\'export');
+        alert('[ERROR] Cette facture n\'est pas dans la file d\'export');
         return;
       }
 
@@ -441,17 +440,17 @@
       if (servicesError) throw servicesError;
 
       if (!services || services.length === 0) {
-        alert('❌ Aucun service trouvé pour cette facture');
+        alert('[ERROR] Aucun service trouvé pour cette facture');
         return;
       }
 
-      console.log(`📋 ${services.length} services à exporter`);
+      console.log(`[SERVICES] ${services.length} services à exporter`);
 
       // 3. Ouvrir modal sélection client/année
       const selection = await showClientYearSelector(queue.client_detecte, queue.annee);
       
       if (!selection) {
-        console.log('❌ Export annulé par utilisateur');
+        console.log('[ERROR] Export annulé par utilisateur');
         return;
       }
 
@@ -466,7 +465,7 @@
         .single();
 
       if (grilleError || !grille) {
-        alert('❌ Grille introuvable pour ce client/année');
+        alert('[ERROR] Grille introuvable pour ce client/année');
         return;
       }
 
@@ -479,7 +478,7 @@
       
       // Récupérer sélection depuis variable globale
       if (typeof window.servicesSelection !== 'undefined' && window.servicesSelection.size > 0) {
-        console.log(`🔍 Sélection active: ${window.servicesSelection.size} services`);
+        console.log(`[SEARCH] Sélection active: ${window.servicesSelection.size} services`);
         
         services.forEach((service, index) => {
           const serviceId = `service-${index}`;
@@ -488,18 +487,18 @@
           }
         });
       } else {
-        console.warn('⚠️ Pas de sélection active, export de tous les services');
+        console.warn('[WARN] Pas de sélection active, export de tous les services');
         // Sécurité : si pas de sélection, prendre tous
         servicesSelected.push(...services);
       }
       
       // Vérifier qu'au moins 1 service est sélectionné
       if (servicesSelected.length === 0) {
-        alert('❌ Aucun service sélectionné.\n\nVeuillez cocher au moins un service à exporter.');
+        alert('[ERROR] Aucun service sélectionné.\n\nVeuillez cocher au moins un service à exporter.');
         return;
       }
       
-      console.log(`📤 Export de ${servicesSelected.length} / ${services.length} service(s) sélectionné(s)`);
+      console.log(`[EXPORT] Export de ${servicesSelected.length} / ${services.length} service(s) sélectionné(s)`);
       
       // 7. Ajouter UNIQUEMENT les services sélectionnés dans destinations_importees
       servicesSelected.forEach(service => {
@@ -520,7 +519,7 @@
         });
       });
       
-      console.log('💾 Sauvegarde grille avec imports...');
+      console.log('[SAVE] Sauvegarde grille avec imports...');
 
       // 7. Sauvegarder grille
       const { error: updateError } = await window.supabaseClient
@@ -542,13 +541,13 @@
         })
         .eq('id', queue.id);
 
-      console.log('✅ Export terminé !');
+      console.log('[OK] Export terminé !');
 
       // 9. Fermer modal
       closeFactureModal();
 
       // 10. Confirmation + proposition ouvrir grille
-      const message = `✅ ${services.length} services exportés vers la grille !\n\nOuvrir la grille tarifaire maintenant ?`;
+      const message = `[OK] ${services.length} services exportés vers la grille !\n\nOuvrir la grille tarifaire maintenant ?`;
       
       if (confirm(message)) {
         window.location.href = `tarification.html?client=${clientId}&year=${year}`;
@@ -558,7 +557,7 @@
       }
 
     } catch (err) {
-      console.error('❌ Erreur export:', err);
+      console.error('[ERROR] Erreur export:', err);
       alert('Erreur lors de l\'export : ' + err.message);
     }
   }
@@ -591,7 +590,7 @@
       `;
 
       modal.innerHTML = `
-        <h3 style="margin: 0 0 16px 0;">📤 Exporter vers Grille Tarifaire</h3>
+        <h3 style="margin: 0 0 16px 0;">[EXPORT] Exporter vers Grille Tarifaire</h3>
         
         <div style="margin-bottom: 16px;">
           <label style="display: block; margin-bottom: 4px; font-weight: 600;">Client</label>
@@ -611,7 +610,7 @@
 
         <div style="display: flex; gap: 12px; justify-content: flex-end;">
           <button class="btn" id="btnCancel">Annuler</button>
-          <button class="btn success" id="btnConfirm">✅ Confirmer</button>
+          <button class="btn success" id="btnConfirm">[OK] Confirmer</button>
         </div>
       `;
 

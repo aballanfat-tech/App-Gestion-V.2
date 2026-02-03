@@ -156,6 +156,9 @@
         </div>
 
         <h3 style="margin: 24px 0 16px;">[SERVICES] Services / Prestations</h3>
+
+         <!-- Container pour services avec checkboxes -->
+        <div id="servicesContainer"></div>
         
         <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
           <button class="btn" onclick="ModalFacture.close()">

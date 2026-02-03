@@ -14,6 +14,37 @@
   let currentFactureId = null;
   let currentData = null;
 
+
+  // Fonction utilitaire : extraire client depuis nom fichier
+  function extractClientFromFilename(filename) {
+    if (!filename) return '';
+    
+    // Format attendu : "FACT-XXXX-XXX NomClient.pdf"
+    // ou "FACT-XXXX-XXX NomClient quelque chose.pdf"
+    
+    // Enlever l'extension
+    const withoutExt = filename.replace(/\.pdf$/i, '');
+    
+    // Pattern : tout ce qui suit le numéro de facture
+    // FACT-XXXX-XXX suivi d'espace ou underscore ou tiret
+    const match = withoutExt.match(/FACT[-_]?\d+[-_]\d+\s+(.+)$/i);
+    
+    if (match && match[1]) {
+      let clientName = match[1];
+      
+      // Remplacer underscores et tirets multiples par espaces
+      clientName = clientName.replace(/_/g, ' ');
+      clientName = clientName.replace(/\s+-\s+/g, ' ');
+      
+      // Nettoyer espaces multiples
+      clientName = clientName.replace(/\s+/g, ' ').trim();
+      
+      return clientName;
+    }
+    
+    return '';
+  }
+
   // ===== OUVRIR MODALE =====
   async function openFactureModal(factureId) {
     console.log('[DOC] Ouverture modale facture:', factureId);
@@ -136,7 +167,7 @@
 
           <div>
             <label style="display: block; margin-bottom: 4px; font-weight: 600;">Client</label>
-            <input type="text" class="field" id="editClient" value="${escapeHtml(fields.client_nom || fields.destinataire || '')}" />
+            <input type="text" class="field" id="editClient" value="${escapeHtml(extractClientFromFilename(currentData?.fichier_nom) || fields.client_nom || fields.destinataire || '')}" />
           </div>
 
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
@@ -458,8 +489,9 @@
 
       // 4. EXTRACTION AUTOMATIQUE CLIENT ET ANNÉE
       
-      // Utiliser la valeur éditée ou celle détectée
+      // Utiliser la valeur éditée, ou extraire depuis nom fichier, ou détectée
       const clientNom = clientEdite || 
+                        extractClientFromFilename(currentData?.fichier_nom) ||
                         queue.client_detecte || 
                         currentData?.donnees_brutes?.fields?.client_nom || 
                         'Client Inconnu';

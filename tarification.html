@@ -1,47 +1,8 @@
 <!doctype html>
-<!--
-=========================================================================================
-AUTOCARS BALLANFAT - GRILLE TARIFAIRE
-Version : v11.0.24 FINAL
-Date : 5 Janvier 2026
-Testeur : Alexis Ballanfat
-=========================================================================================
-
-CHANGELOG v11.0.24 FINAL (5 Jan 2026 - 11:30):
------------------------------------------------
-🐛 BUGFIX CRITIQUE: SyntaxError await ligne 2322
-  - resetGridToInitial() appelait "await computeEvolutions()" sans être async
-  - Console: "Uncaught SyntaxError: await is only valid in async functions"
-  - CORRECTION: Retrait du await, computeEvolutions() s'exécute en parallèle
-  - markUnchangedPrices() ne dépend pas de computeEvolutions()
-  - RÉSULTAT: 0 erreur console, grille fonctionne correctement
-
-CHANGELOG v11.0.23 FINAL (5 Jan 2026):
----------------------------------------
-✅ BUGFIX #3-4: triggerAutoSave définie en scope global (ligne 2116)
-  - Variables auto-save déclarées globalement (lignes 1736-1738)
-  - Fonctions showSaveIndicator, updateLastSavedIndicator, triggerAutoSave, autoSaveGrid en scope global
-  - Suppression duplications dans DOMContentLoaded
-  - RÉSULTAT: Sauvegarde auto TTC et Drag&Drop fonctionnelle
-
-✅ BUGFIX #2: Années chargées prioritairement depuis cloud (ligne 2142)
-  - getStoredYearsForClient() priorise Supabase sur localStorage
-  - Logs détaillés pour debug (cloud vs localStorage)
-  - Année courante ajoutée par défaut si aucune trouvée
-  - RÉSULTAT: Années chargées depuis Supabase après RLS désactivé
-
-✅ BUGFIX TEST 1.1: Import JSON + rechargement années (ligne 2778)
-  - populateYearSelectForClient() appelée après saveGrid()
-  - Année importée visible immédiatement dans sélecteur
-  - Re-sélection automatique de l'année importée
-  - RÉSULTAT: Import JSON complet fonctionnel
-
-=========================================================================================
--->
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>Grille tarifaire V11.0.24 V.2 – Autocars Ballanfat</title>
+<title>Grille tarifaire – Autocars Ballanfat</title>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 
 <!-- Supabase Client CDN -->
@@ -657,6 +618,84 @@ body.hide-facture-columns .col-no {
   display: none !important;
 }
 /* === FIN MASQUAGE === */
+
+/* ============================================== */
+/* COLONNES N° FACTURE AU SURVOL - V11.0.25 */
+/* ============================================== */
+
+/* Headers N° masqués complètement (gain d'espace) */
+thead .col-no {
+  display: none !important;
+  width: 0;
+  padding: 0;
+  border: none;
+}
+
+/* Colonnes N° masquées par défaut dans tbody */
+tbody .col-no {
+  display: none;
+  width: 0;
+  padding: 0;
+  border: none;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Au survol de la ligne: colonnes N° apparaissent */
+tbody tr:hover .col-no {
+  display: table-cell;
+  width: auto;
+  min-width: 90px;
+  max-width: 120px;
+  padding: 6px 8px;
+  opacity: 1;
+  background: linear-gradient(135deg, #fffbea 0%, #fef3c7 100%);
+  border-left: 3px solid #f59e0b;
+  border-right: 1px solid #fde68a;
+  animation: slideInFacture 0.25s ease;
+}
+
+/* Input dans colonne N° au survol */
+tbody tr:hover .col-no .facture-input {
+  background: white;
+  border: 1px solid #fbbf24;
+  border-radius: 3px;
+  padding: 4px 6px;
+  font-size: 0.8rem;
+  width: 85px;
+  cursor: text;
+  transition: border-color 0.2s;
+}
+
+/* Input focus */
+tbody tr .col-no .facture-input:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+/* Animation d'entrée */
+@keyframes slideInFacture {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Indication visuelle sur survol */
+tbody tr:hover {
+  background-color: rgba(249, 250, 251, 0.5);
+}
+
+/* ============================================== */
+/* FIN COLONNES N° FACTURE AU SURVOL */
+/* ============================================== */
+
 
 /* === MODALE RÉORGANISATION CLIENTS V11.0.16 === */
 #reorderModal {
@@ -1466,129 +1505,7 @@ table.table-drop-target tbody {
     </div>
   </div>
 
-  <div class="card" id="paramsCard">
-    <div class="params-toggle" id="paramsToggleArea">
-      <span class="btn-icon">⚙</span>
-      <span>Paramètres avancés</span>
-    </div>
-    <div class="params-panel" id="paramsPanel">
-      
-      <!-- Section 1 : Configuration générale -->
-      <div class="params-section">
-        <h3 class="params-section-title">⚙️ Configuration générale</h3>
-        <div class="params-row">
-          <label>TVA (%) :
-            <input type="number" id="tvaInput" value="10" step="0.1" min="0" max="100">
-          </label>
-        </div>
-        <div class="params-row">
-          <label>Tri des destinations :
-            <select id="sortDestinations">
-              <option value="freqDesc">Fréquence (plus fréquent en haut)</option>
-              <option value="alphaAsc">Nom A → Z</option>
-              <option value="alphaDesc">Nom Z → A</option>
-              <option value="original">Ordre d'origine</option>
-            </select>
-          </label>
-        </div>
-      </div>
-      
-      <!-- Section 2 : Sauvegarde & Export -->
-      <div class="params-section">
-        <h3 class="params-section-title">💾 Sauvegarde & Export</h3>
-        <div class="params-row">
-          <button id="btnGoogleDrive" type="button" class="btn btn-primary">
-            <span class="btn-icon">☁️</span><span>Connecter Google Drive</span>
-          </button>
-          <span class="muted">Sauvegarde automatique sur votre Drive</span>
-        </div>
-        <div class="params-row">
-          <button id="btnVersions" type="button" class="btn">
-            <span class="btn-icon">🕐</span><span>Historique des versions</span>
-          </button>
-          <span class="muted">50 dernières sauvegardes</span>
-        </div>
-        <div class="params-row">
-          <button id="btnExportJSON" type="button" class="btn">
-            <span class="btn-icon">📥</span><span>Exporter JSON</span>
-          </button>
-          <button id="btnSaveAsJSON" type="button" class="btn">
-            <span class="btn-icon">💾</span><span>Enregistrer sous...</span>
-          </button>
-          <button id="btnImportJSON" type="button" class="btn">
-            <span class="btn-icon">📤</span><span>Importer JSON</span>
-          </button>
-        </div>
-        <div class="params-row">
-          <button id="btnExportCSV" type="button" class="btn">
-            <span class="btn-icon">📊</span><span>Exporter CSV</span>
-          </button>
-          <button id="btnExportAll" type="button" class="btn">
-            <span class="btn-icon">📦</span><span>Exporter TOUT</span>
-          </button>
-          <span class="muted">Tous clients/années</span>
-        </div>
-      </div>
-      
-      
-      <!-- Section 3 : Catégories de véhicules -->
-      <div class="params-section">
-        <h3 class="params-section-title">🚗 Catégories de véhicules</h3>
-        <p class="muted" style="margin-bottom:10px;">Personnaliser les noms et capacités par client/année.</p>
-        
-        <div style="display:grid; grid-template-columns: auto 1fr 1fr; gap:8px; align-items:center;">
-          <strong>Visible</strong>
-          <strong>Nom</strong>
-          <strong>Capacité</strong>
-        </div>
-        
-        <div class="params-row" style="margin-top:10px;">
-          <button id="btnEditCategories" type="button" class="btn">
-            <span class="btn-icon">✏️</span><span>Éditer les catégories</span>
-          </button>
-        </div>
-        
-        <div class="params-row" style="margin-top:15px; padding-top:15px; border-top:1px solid #ddd;">
-          <label style="cursor: pointer;">
-            <input type="checkbox" id="toggleFactureColumns" checked>
-            <strong>Afficher colonnes "N° Facture"</strong>
-          </label>
-        </div>
-      </div>
-      
-      <!-- Section 5 : Gestion clients/années -->
-      <div class="params-section">
-        <h3 class="params-section-title">👥 Clients & Années</h3>
-        <div class="params-row">
-          <strong>Clients :</strong>
-          <button id="btnRenameClient" type="button" class="btn">
-            <span class="btn-icon">✏️</span><span>Renommer</span>
-          </button>
-          <button id="btnDeleteClient" type="button" class="btn btn-ghost">Supprimer</button>
-        </div>
-        <div class="params-row">
-          <strong>Années :</strong>
-          <button id="btnDuplicateYear" type="button" class="btn">
-            <span class="btn-icon">📋</span><span>Dupliquer</span>
-          </button>
-          <button id="btnDeleteYear" type="button" class="btn btn-ghost">Supprimer</button>
-        </div>
-      </div>
-      
-      <!-- Section 6 : Gestion tableaux -->
-      <div class="params-section">
-        <h3 class="params-section-title">📊 Tableaux personnalisés</h3>
-        <div id="tablesManager" class="tables-manager"></div>
-        <div class="params-row">
-          <button id="btnCreateTable" type="button" class="btn" onclick="createTable()">
-            <span class="btn-icon">➕</span><span>Créer tableau</span>
-          </button>
-        </div>
-      </div>
-      
-    </div>
   </div>
-</div>
 
 <!-- Modal Édition Catégories v11.0.6 -->
 <div id="categoriesModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; z-index:10001; background:rgba(0,0,0,0.5);">
@@ -1621,6 +1538,110 @@ table.table-drop-target tbody {
     </div>
   </div>
 </div>
+
+
+<!-- ================================================ -->
+<!-- MODAL PARAMÈTRES V11.0.25 -->
+<!-- ================================================ -->
+<div id="paramsModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:10000; align-items:center; justify-content:center;">
+  <div style="background:white; border-radius:12px; max-width:600px; width:90%; max-height:85vh; overflow-y:auto; box-shadow:0 8px 32px rgba(0,0,0,0.3);">
+    <div style="padding:30px;">
+      <!-- Header -->
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:25px;">
+        <h2 style="margin:0; color:#1a3c6e; display:flex; align-items:center; gap:10px;">
+          <span>⚙️</span>
+          <span>Paramètres</span>
+        </h2>
+        <button id="btnCloseParams" type="button" style="border:none; background:#ef4444; color:white; padding:8px 16px; border-radius:6px; cursor:pointer; font-weight:600; font-size:1rem;">
+          ✕ Fermer
+        </button>
+      </div>
+      
+      <!-- Section 1: Configuration -->
+      <div style="margin-bottom:25px; padding-bottom:20px; border-bottom:2px solid #e5e7eb;">
+        <h3 style="margin:0 0 15px 0; color:#1f2937; font-size:1.1rem;">⚙️ Configuration</h3>
+        
+        <div style="margin-bottom:12px;">
+          <label style="display:block; margin-bottom:5px; font-weight:500; color:#4b5563;">
+            TVA par défaut (%)
+          </label>
+          <input type="number" id="tvaInput" value="10" step="0.1" min="0" max="100" 
+                 style="width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:1rem;">
+        </div>
+        
+        <div>
+          <label style="display:block; margin-bottom:5px; font-weight:500; color:#4b5563;">
+            Tri des destinations
+          </label>
+          <select id="sortDestinations" style="width:100%; padding:8px 12px; border:1px solid #d1d5db; border-radius:6px; font-size:1rem; background:white;">
+            <option value="freqDesc">Fréquence (plus fréquent en haut)</option>
+            <option value="alphaAsc">Nom A → Z</option>
+            <option value="alphaDesc">Nom Z → A</option>
+            <option value="original">Ordre d'origine</option>
+          </select>
+        </div>
+      </div>
+      
+      <!-- Section 2: Export & Import -->
+      <div style="margin-bottom:25px; padding-bottom:20px; border-bottom:2px solid #e5e7eb;">
+        <h3 style="margin:0 0 15px 0; color:#1f2937; font-size:1.1rem;">📦 Export & Import</h3>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px;">
+          <button id="btnExportJSON" type="button" class="btn" style="width:100%; justify-content:center;">
+            <span class="btn-icon">📥</span><span>Export JSON</span>
+          </button>
+          <button id="btnExportCSV" type="button" class="btn" style="width:100%; justify-content:center;">
+            <span class="btn-icon">📊</span><span>Export CSV</span>
+          </button>
+        </div>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <button id="btnImportJSON" type="button" class="btn" style="width:100%; justify-content:center;">
+            <span class="btn-icon">📤</span><span>Importer</span>
+          </button>
+          <button id="btnExportAll" type="button" class="btn" style="width:100%; justify-content:center;">
+            <span class="btn-icon">📦</span><span>Tout exporter</span>
+          </button>
+        </div>
+        <small class="muted" style="display:block; margin-top:8px; text-align:center;">
+          "Tout exporter" : tous clients/années en un fichier
+        </small>
+      </div>
+      
+      <!-- Section 3: Catégories véhicules -->
+      <div style="margin-bottom:25px; padding-bottom:20px; border-bottom:2px solid #e5e7eb;">
+        <h3 style="margin:0 0 15px 0; color:#1f2937; font-size:1.1rem;">🚗 Catégories véhicules</h3>
+        
+        <button id="btnEditCategories" type="button" class="btn" style="width:100%; justify-content:center;">
+          <span class="btn-icon">✏️</span><span>Personnaliser les catégories</span>
+        </button>
+        <small class="muted" style="display:block; margin-top:8px;">
+          Modifier noms et capacités par client/année
+        </small>
+      </div>
+      
+      <!-- Section 4: Gestion clients -->
+      <div>
+        <h3 style="margin:0 0 15px 0; color:#1f2937; font-size:1.1rem;">👥 Gestion clients</h3>
+        
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <button id="btnManageClients" type="button" class="btn" style="width:100%; justify-content:center;">
+            <span class="btn-icon">👥</span><span>Gérer clients</span>
+          </button>
+          <button id="btnReorderClientsModal" type="button" class="btn" style="width:100%; justify-content:center;">
+            <span class="btn-icon">↕️</span><span>Réorganiser</span>
+          </button>
+        </div>
+        <small class="muted" style="display:block; margin-top:8px;">
+          Ajouter, supprimer ou réorganiser les clients
+        </small>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ================================================ -->
+<!-- FIN MODAL PARAMÈTRES -->
+<!-- ================================================ -->
 
   <!-- BUGFIX V11.0.16: Barre de recherche globale (tous tableaux) -->
   <div class="card card-recherche card-fixed" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-left: 4px solid #1976d2;">
@@ -5899,30 +5920,36 @@ if (!isSupabaseAvailable) {
 
   setStatus("V10.4.2 DEBUG : tableaux dynamiques (test simple)", false);
 
-  document.getElementById("paramsToggleArea").addEventListener("click", function(){
-    const panel = document.getElementById("paramsPanel");
-    panel.style.display = panel.style.display === "block" ? "none" : "block";
-  });
+  // Ouvrir modal paramètres V11.0.25
   document.getElementById("btnParamsToggle").addEventListener("click", function(){
-    const panel = document.getElementById("paramsPanel");
-    panel.style.display = panel.style.display === "block" ? "none" : "block";
+    const modal = document.getElementById("paramsModal");
+    if(modal) {
+      modal.style.display = "flex";
+    }
+  });
+  
+  // Fermer modal paramètres
+  document.getElementById("btnCloseParams").addEventListener("click", function(){
+    const modal = document.getElementById("paramsModal");
+    if(modal) {
+      modal.style.display = "none";
+    }
+  });
+  
+  // Fermer modal si clic en dehors
+  document.getElementById("paramsModal").addEventListener("click", function(e){
+    if(e.target === this) {
+      this.style.display = "none";
+    }
   });
 
   document.querySelectorAll(".toggle-cat").forEach(cb => {
     cb.addEventListener("change", applyColumnVisibility);
   });
   
-  // Masquage colonnes facture V10.8.2
-  const toggleFacture = document.getElementById("toggleFactureColumns");
-  if(toggleFacture){
-    toggleFacture.addEventListener("change", function(){
-      if(this.checked){
-        document.body.classList.remove("hide-facture-columns");
-      } else {
-        document.body.classList.add("hide-facture-columns");
-      }
-    });
-  }
+  // Colonnes facture au survol V11.0.25
+  // Plus besoin de toggle, colonnes apparaissent automatiquement au survol
+  // CSS géré dans <style> section
   
   const maxDestInput = document.getElementById("maxDest");
   if(maxDestInput) maxDestInput.addEventListener("input", applyRowVisibility);

@@ -353,7 +353,7 @@
     color: white;
   }
   
-  th.dest,td.dest{min-width:320px; font-weight:bold;} /* V10.10.0 - Agrandi + bold */
+  th.dest,td.dest{min-width:400px; max-width:500px; font-weight:bold; word-wrap:break-word;} /* V10.10.0 - Agrandi + bold */
   th.trajet,td.trajet{min-width:90px;}
   th.col-no,td.col-no{min-width:70px;}
   th.col-ht,td.col-ht{
@@ -535,7 +535,71 @@
 
   
   /* Mode impression client : HT uniquement, pas de n° facture, pas de colonnes TTC/évolution, pas de notes */
-  body.client-print .col-no,
+  
+/* ============================================== */
+/* COLONNES N° FACTURE - TOGGLE MANUEL V11.0.25 */
+/* ============================================== */
+
+/* Par défaut : colonnes N° masquées (gain d'espace) */
+.col-no {
+  display: none;
+  width: 0;
+  padding: 0;
+  border: none;
+  overflow: hidden;
+}
+
+/* Quand bouton activé : colonnes N° visibles */
+body.show-facture-columns .col-no {
+  display: table-cell;
+  width: auto;
+  min-width: 90px;
+  max-width: 120px;
+  padding: 8px 6px;
+  background: linear-gradient(135deg, #fff9e6 0%, #fef3c7 100%);
+  border-left: 2px solid #fbbf24;
+  border-right: 1px solid #fde68a;
+}
+
+/* Input dans colonne N° */
+body.show-facture-columns .col-no .facture-input {
+  background: white;
+  border: 1px solid #d1d5db;
+  border-radius: 3px;
+  padding: 4px 6px;
+  font-size: 0.85rem;
+  width: 85px;
+}
+
+/* Input focus */
+.col-no .facture-input:focus {
+  outline: none;
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
+}
+
+/* Headers N° : toujours visibles mais grisés si colonnes masquées */
+thead .col-no {
+  display: table-cell;
+  opacity: 0.35;
+  font-size: 0.8rem;
+  color: #9ca3af;
+  transition: opacity 0.2s;
+}
+
+/* Headers N° : opacity normale quand colonnes visibles */
+body.show-facture-columns thead .col-no {
+  opacity: 1;
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* ============================================== */
+/* FIN COLONNES N° FACTURE TOGGLE */
+/* ============================================== */
+
+
+body.client-print .col-no,
   body.client-print .col-ttc,
   body.client-print .col-evol,
   body.client-print .col-note{
@@ -619,82 +683,7 @@ body.hide-facture-columns .col-no {
 }
 /* === FIN MASQUAGE === */
 
-/* ============================================== */
-/* COLONNES N° FACTURE AU SURVOL - V11.0.25 */
-/* ============================================== */
 
-/* Headers N° masqués complètement (gain d'espace) */
-thead .col-no {
-  display: none !important;
-  width: 0;
-  padding: 0;
-  border: none;
-}
-
-/* Colonnes N° masquées par défaut dans tbody */
-tbody .col-no {
-  display: none;
-  width: 0;
-  padding: 0;
-  border: none;
-  overflow: hidden;
-  opacity: 0;
-  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Au survol de la ligne: colonnes N° apparaissent */
-tbody tr:hover .col-no {
-  display: table-cell;
-  width: auto;
-  min-width: 90px;
-  max-width: 120px;
-  padding: 6px 8px;
-  opacity: 1;
-  background: linear-gradient(135deg, #fffbea 0%, #fef3c7 100%);
-  border-left: 3px solid #f59e0b;
-  border-right: 1px solid #fde68a;
-  animation: slideInFacture 0.25s ease;
-}
-
-/* Input dans colonne N° au survol */
-tbody tr:hover .col-no .facture-input {
-  background: white;
-  border: 1px solid #fbbf24;
-  border-radius: 3px;
-  padding: 4px 6px;
-  font-size: 0.8rem;
-  width: 85px;
-  cursor: text;
-  transition: border-color 0.2s;
-}
-
-/* Input focus */
-tbody tr .col-no .facture-input:focus {
-  outline: none;
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.2);
-}
-
-/* Animation d'entrée */
-@keyframes slideInFacture {
-  from {
-    opacity: 0;
-    transform: translateX(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
-/* Indication visuelle sur survol */
-tbody tr:hover {
-  background-color: rgba(249, 250, 251, 0.5);
-}
-
-/* ============================================== */
-/* FIN COLONNES N° FACTURE AU SURVOL */
-/* ============================================== */
 
 
 /* === MODALE RÉORGANISATION CLIENTS V11.0.16 === */
@@ -1331,6 +1320,9 @@ table.table-drop-target tbody {
           </button>
           <button id="btnPrintAdvanced" type="button" class="btn">
             <span class="btn-icon">🖨</span><span>Imprimer</span>
+          </button>
+          <button id="btnToggleFactures" type="button" class="btn" title="Afficher/masquer les colonnes N° Facture">
+            <span class="btn-icon">🔢</span><span>N° Factures</span>
           </button>
           <button id="btnParamsToggle" type="button" class="btn btn-ghost">
             <span class="btn-icon">⚙</span><span>Paramètres</span>
@@ -5947,9 +5939,7 @@ if (!isSupabaseAvailable) {
     cb.addEventListener("change", applyColumnVisibility);
   });
   
-  // Colonnes facture au survol V11.0.25
-  // Plus besoin de toggle, colonnes apparaissent automatiquement au survol
-  // CSS géré dans <style> section
+
   
   const maxDestInput = document.getElementById("maxDest");
   if(maxDestInput) maxDestInput.addEventListener("input", applyRowVisibility);
@@ -6168,6 +6158,40 @@ await loadGrid();
   document.getElementById("btnPrintAdvanced").addEventListener("click", function(){
     showPrintModal();
   });
+
+  // Bouton Toggle colonnes N° Factures V11.0.25
+  const btnToggleFactures = document.getElementById("btnToggleFactures");
+  if(btnToggleFactures) {
+    // État initial : vérifier si colonnes déjà affichées (localStorage)
+    const showFactures = localStorage.getItem("showFactureColumns") === "true";
+    if(showFactures) {
+      document.body.classList.add("show-facture-columns");
+      btnToggleFactures.style.background = "#10b981";
+      btnToggleFactures.style.color = "white";
+      btnToggleFactures.style.borderColor = "#10b981";
+    }
+    
+    btnToggleFactures.addEventListener("click", function(){
+      document.body.classList.toggle("show-facture-columns");
+      const isActive = document.body.classList.contains("show-facture-columns");
+      
+      // Changer style bouton
+      if(isActive) {
+        this.style.background = "#10b981"; // Vert
+        this.style.color = "white";
+        this.style.borderColor = "#10b981";
+        setStatus("Colonnes N° Facture affichées", false);
+      } else {
+        this.style.background = "";
+        this.style.color = "";
+        this.style.borderColor = "";
+        setStatus("Colonnes N° Facture masquées", false);
+      }
+      
+      // Sauvegarder préférence
+      localStorage.setItem("showFactureColumns", isActive ? "true" : "false");
+    });
+  }
   
   document.getElementById("btnClosePrint").addEventListener("click", function(){
     document.getElementById("printModal").style.display = 'none';

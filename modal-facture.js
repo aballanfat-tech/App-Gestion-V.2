@@ -45,6 +45,399 @@
     return '';
   }
 
+
+  // ===== MODAL ÉDITION SERVICE =====
+  
+
+  // Stocker tous les services globalement pour accès depuis boutons
+  window.allServicesData = [];
+
+  // Stocker les modifications de services
+  const serviceEdits = {};
+  
+  function openEditServiceModal(service, index) {
+    console.log('[EDIT] Ouverture modal édition service:', index);
+    
+    // Récupérer les modifications précédentes si existent
+    const editedService = serviceEdits[index] || { ...service };
+    
+    // Créer overlay
+    const overlay = document.createElement('div');
+    overlay.id = 'editServiceOverlay';
+    overlay.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 10001;
+      padding: 20px;
+    `;
+    
+    // Créer modal
+    const modal = document.createElement('div');
+    modal.style.cssText = `
+      background: white;
+      border-radius: 8px;
+      width: 100%;
+      max-width: 600px;
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    `;
+    
+    // Contenu modal
+    modal.innerHTML = `
+      <div style="padding: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+          <h3 style="margin: 0; color: #2d3748;">Editer Service #${index + 1}</h3>
+          <button id="closeEditModal" style="
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #718096;
+          ">&times;</button>
+        </div>
+        
+        <form id="editServiceForm">
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #4a5568;">
+              Description
+            </label>
+            <textarea 
+              id="editDescription" 
+              rows="3"
+              style="
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #cbd5e0;
+                border-radius: 4px;
+                font-family: inherit;
+                font-size: 14px;
+                resize: vertical;
+              "
+            >${escapeHtml(editedService.description_orig || editedService.description || '')}</textarea>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #4a5568;">
+                Date
+              </label>
+              <input 
+                type="text" 
+                id="editDate"
+                value="${escapeHtml(editedService.date || '')}"
+                placeholder="JJ/MM/AAAA"
+                style="
+                  width: 100%;
+                  padding: 8px;
+                  border: 1px solid #cbd5e0;
+                  border-radius: 4px;
+                "
+              />
+            </div>
+            
+            <div>
+              <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #4a5568;">
+                Prix HT (€)
+              </label>
+              <input 
+                type="number" 
+                id="editPrixHT"
+                value="${editedService.prix_ht || 0}"
+                step="0.01"
+                min="0"
+                style="
+                  width: 100%;
+                  padding: 8px;
+                  border: 1px solid #cbd5e0;
+                  border-radius: 4px;
+                "
+              />
+            </div>
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+            <div>
+              <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #4a5568;">
+                Quantité
+              </label>
+              <input 
+                type="number" 
+                id="editQuantite"
+                value="${editedService.quantite || 1}"
+                min="1"
+                style="
+                  width: 100%;
+                  padding: 8px;
+                  border: 1px solid #cbd5e0;
+                  border-radius: 4px;
+                "
+              />
+            </div>
+            
+            <div>
+              <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #4a5568;">
+                TVA
+              </label>
+              <select 
+                id="editTVA"
+                style="
+                  width: 100%;
+                  padding: 8px;
+                  border: 1px solid #cbd5e0;
+                  border-radius: 4px;
+                  background: white;
+                "
+              >
+                <option value="5.5" ${editedService.tva == 5.5 ? 'selected' : ''}>5.5%</option>
+                <option value="10" ${editedService.tva == 10 ? 'selected' : ''}>10%</option>
+                <option value="20" ${editedService.tva == 20 ? 'selected' : ''}>20%</option>
+              </select>
+            </div>
+          </div>
+          
+          <div style="margin-bottom: 16px;">
+            <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #4a5568;">
+              Destination
+            </label>
+            <input 
+              type="text" 
+              id="editDestination"
+              value="${escapeHtml(editedService.destination_detectee || editedService.destination_validee || '')}"
+              placeholder="Ex: Annecy, Grand Bornand..."
+              style="
+                width: 100%;
+                padding: 8px;
+                border: 1px solid #cbd5e0;
+                border-radius: 4px;
+              "
+            />
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px;">
+            <div>
+              <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #4a5568;">
+                Type de trajet
+              </label>
+              <select 
+                id="editTypeTrajet"
+                style="
+                  width: 100%;
+                  padding: 8px;
+                  border: 1px solid #cbd5e0;
+                  border-radius: 4px;
+                  background: white;
+                "
+              >
+                <option value="AR" ${(editedService.type_trajet || '').toUpperCase() === 'AR' ? 'selected' : ''}>Aller-Retour (AR)</option>
+                <option value="Aller" ${(editedService.type_trajet || '').toLowerCase() === 'aller' ? 'selected' : ''}>Aller simple</option>
+                <option value="Transfer" ${(editedService.type_trajet || '').toLowerCase() === 'transfer' ? 'selected' : ''}>Transfert</option>
+              </select>
+            </div>
+            
+            <div>
+              <label style="display: block; margin-bottom: 4px; font-weight: 600; color: #4a5568;">
+                Véhicule
+              </label>
+              <select 
+                id="editVehicule"
+                style="
+                  width: 100%;
+                  padding: 8px;
+                  border: 1px solid #cbd5e0;
+                  border-radius: 4px;
+                  background: white;
+                "
+              >
+                <option value="VL" ${(editedService.vehicule_detecte || '').includes('VL') ? 'selected' : ''}>VL (< 9 places)</option>
+                <option value="Minicar 22" ${(editedService.vehicule_detecte || '').includes('22') ? 'selected' : ''}>Minicar 22 places</option>
+                <option value="Minicar 33" ${(editedService.vehicule_detecte || '').includes('33') ? 'selected' : ''}>Minicar 33 places</option>
+                <option value="Autocar 55" ${(editedService.vehicule_detecte || '').includes('55') ? 'selected' : ''}>Autocar 55 places</option>
+                <option value="Autocar 64" ${(editedService.vehicule_detecte || '').includes('64') ? 'selected' : ''}>Autocar 64 places</option>
+              </select>
+            </div>
+          </div>
+          
+          <div style="display: flex; justify-content: flex-end; gap: 12px;">
+            <button 
+              type="button" 
+              id="cancelEditService"
+              class="btn"
+              style="
+                padding: 10px 20px;
+                border: 1px solid #cbd5e0;
+                background: white;
+                border-radius: 4px;
+                cursor: pointer;
+              "
+            >
+              [ERROR] Annuler
+            </button>
+            <button 
+              type="submit" 
+              id="saveEditService"
+              class="btn success"
+              style="
+                padding: 10px 20px;
+                background: #48bb78;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-weight: 600;
+              "
+            >
+              [OK] Sauvegarder
+            </button>
+          </div>
+        </form>
+      </div>
+    `;
+    
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    
+    // Event listeners
+    document.getElementById('closeEditModal').onclick = () => overlay.remove();
+    document.getElementById('cancelEditService').onclick = () => overlay.remove();
+    
+    document.getElementById('editServiceForm').onsubmit = (e) => {
+      e.preventDefault();
+      
+      // Récupérer les valeurs
+      const editedData = {
+        ...service,
+        description_orig: document.getElementById('editDescription').value,
+        description: document.getElementById('editDescription').value,
+        date: document.getElementById('editDate').value,
+        prix_ht: parseFloat(document.getElementById('editPrixHT').value),
+        quantite: parseInt(document.getElementById('editQuantite').value),
+        tva: parseFloat(document.getElementById('editTVA').value),
+        destination_detectee: document.getElementById('editDestination').value,
+        destination_validee: document.getElementById('editDestination').value,
+        type_trajet: document.getElementById('editTypeTrajet').value,
+        vehicule_detecte: document.getElementById('editVehicule').value,
+        vehicule_valide: document.getElementById('editVehicule').value,
+        edited: true
+      };
+      
+      // Stocker les modifications
+      serviceEdits[index] = editedData;
+      
+      console.log('[OK] Service modifié:', index, editedData);
+      
+      // Mettre à jour l'affichage
+      updateServiceDisplay(index, editedData);
+      
+      // Fermer modal
+      overlay.remove();
+    };
+    
+    // Fermer si clic en dehors
+    overlay.onclick = (e) => {
+      if (e.target === overlay) overlay.remove();
+    };
+  }
+  
+  function updateServiceDisplay(index, editedData) {
+    const serviceElement = document.querySelector(`[data-service-index="${index}"]`);
+    if (!serviceElement) return;
+    
+    // Calculer TTC
+    const prixTTC = editedData.prix_ht * editedData.quantite * (1 + editedData.tva / 100);
+    const prixHTTotal = editedData.prix_ht * editedData.quantite;
+    
+    // Mettre à jour le HTML
+    const descDiv = serviceElement.querySelector('.service-description');
+    if (descDiv) {
+      descDiv.innerHTML = `
+        ${editedData.date ? editedData.date + ' : ' : ''}${escapeHtml(editedData.description_orig || editedData.description)}
+        ${editedData.edited ? '<span style="color: #48bb78; font-weight: 600; margin-left: 8px;">[MODIFIÉ]</span>' : ''}
+      `;
+    }
+    
+    const priceDiv = serviceElement.querySelector('.service-price');
+    if (priceDiv) {
+      priceDiv.textContent = `${prixHTTotal.toFixed(2)} € HT    ${prixTTC.toFixed(2)} € TTC    TVA ${editedData.tva}%`;
+    }
+  }
+
+  // Version locale de renderServiceWithCheckbox avec bouton éditer
+  function renderServiceWithCheckboxAndEdit(service, index) {
+    const serviceId = `service-${index}`;
+    const isChecked = window.servicesSelection && window.servicesSelection.has(serviceId);
+    
+    // Utiliser version éditée si existe
+    const displayService = serviceEdits[index] || service;
+    
+    const prixTTC = displayService.prix_ht * displayService.quantite * (1 + displayService.tva / 100);
+    const prixHTTotal = displayService.prix_ht * displayService.quantite;
+    
+    return `
+      <div class="service-item" data-service-index="${index}" style="
+        border: 1px solid #e2e8f0;
+        border-radius: 6px;
+        padding: 12px;
+        margin-bottom: 12px;
+        background: ${isChecked ? '#f7fafc' : 'white'};
+      ">
+        <div style="display: flex; align-items: flex-start; gap: 12px;">
+          <input 
+            type="checkbox" 
+            id="${serviceId}"
+            ${isChecked ? 'checked' : ''}
+            onchange="window.toggleServiceSelection && window.toggleServiceSelection('${serviceId}')"
+            style="margin-top: 4px; cursor: pointer; width: 18px; height: 18px;"
+          />
+          
+          <div style="flex: 1;">
+            <div style="display: flex; justify-content: space-between; align-items: start;">
+              <div style="flex: 1;">
+                <div style="font-weight: 600; color: #2d3748; margin-bottom: 4px;">
+                  Service  Quantité: ${displayService.quantite || 1}
+                  ${displayService.edited ? '<span style="color: #48bb78; font-size: 12px; margin-left: 8px;">[MODIFIÉ]</span>' : ''}
+                </div>
+                <div class="service-description" style="color: #4a5568; font-size: 14px; line-height: 1.4;">
+                  ${displayService.date ? displayService.date + ' : ' : ''}${escapeHtml(displayService.description_orig || displayService.description || displayService.desc || '')}
+                </div>
+                <div class="service-price" style="font-size: 13px; color: #2d3748; margin-top: 4px;">
+                  ${prixHTTotal.toFixed(2)} € HT    ${prixTTC.toFixed(2)} € TTC    TVA ${displayService.tva || 10}%
+                </div>
+              </div>
+            </div>
+            
+            <button 
+              onclick="openEditServiceModal(window.allServicesData[${index}], ${index}); event.stopPropagation();"
+              style="
+                margin-top: 8px;
+                padding: 6px 12px;
+                background: #4299e1;
+                color: white;
+                border: none;
+                border-radius: 4px;
+                cursor: pointer;
+                font-size: 13px;
+                font-weight: 500;
+              "
+            >
+              ✏️ Éditer
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
+
+
+
   // ===== OUVRIR MODALE =====
   async function openFactureModal(factureId) {
     console.log('[DOC] Ouverture modale facture:', factureId);
@@ -227,15 +620,10 @@
         console.warn('[WARN] initializeServiceSelection non disponible');
       }
       
-      // Générer HTML avec checkboxes
+      // Générer HTML avec checkboxes et bouton éditer
       let servicesHTML = '';
       allServices.forEach((service, index) => {
-        if (typeof renderServiceWithCheckbox === 'function') {
-          servicesHTML += renderServiceWithCheckbox(service, index);
-        } else {
-          // Fallback si fonction pas dispo
-          servicesHTML += `<div class="service-item">${service.desc || service.description}</div>`;
-        }
+        servicesHTML += renderServiceWithCheckboxAndEdit(service, index);
       });
       
       servicesContainer.innerHTML = servicesHTML;
@@ -618,7 +1006,7 @@
       const gridData = grille.data || { destinations: {}, destinations_importees: [] };
       gridData.destinations_importees = gridData.destinations_importees || [];
 
-      // 8. Filtrer services sélectionnés uniquement
+      // 8. Filtrer services sélectionnés uniquement (et appliquer modifications)
       const servicesSelected = [];
       
       if (typeof window.servicesSelection !== 'undefined' && window.servicesSelection.size > 0) {
@@ -627,7 +1015,12 @@
         services.forEach((service, index) => {
           const serviceId = `service-${index}`;
           if (window.servicesSelection.has(serviceId)) {
-            servicesSelected.push(service);
+            // Utiliser la version éditée si elle existe
+            const finalService = serviceEdits[index] || service;
+            servicesSelected.push(finalService);
+            if (serviceEdits[index]) {
+              console.log(`[INFO] Service ${index} modifié utilisé pour export`);
+            }
           }
         });
       } else {
